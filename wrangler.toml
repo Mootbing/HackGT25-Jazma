@@ -15,12 +15,8 @@ NODE_ENV = "production"
 # wrangler secret put OPENAI_API_KEY
 # wrangler secret put DATABASE_URL
 
-# If you need to use external services
-[[services]]
-# Define any service bindings if needed
-
-# For larger applications, you might need:
-[build]
-command = "npm run build"
-cwd = "./"
-watch_dir = "./src"
+# KV Namespaces
+[[kv_namespaces]]
+binding = "OAUTH_KV"
+id = "f1d9fe0c943b456c915aa75890055ebb"
+preview_id = "242211ea4701408f8fe6c9f4fc141483"
