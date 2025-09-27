@@ -4,6 +4,7 @@ from rich.align import Align
 from rich.text import Text
 from rich.progress import SpinnerColumn, Progress, TextColumn
 from rich.prompt import Prompt
+from rich.live import Live
 from time import sleep
 import requests
 import pyfiglet
@@ -32,10 +33,13 @@ def main_loading_screen():
     console.clear()
     console.print(panel)
 
+    answer = Prompt.ask("Type [bold green]begin[/] to start MCP, type [bold blue]help[/] for more info", default="begin")
+    return answer
+
 def awaiting_mcp():
     with Progress(
         SpinnerColumn(),
-        TextColumn("[bold red]Waiting for MCP request from Cursor..."),
+        TextColumn("[bold magenta]Waiting for MCP request from Cursor..."),
         transient=False
     ) as progress:
         task = progress.add_task("spinner", total=None)
@@ -96,8 +100,16 @@ def awaiting_files():
             sleep(1)
 
 def main():
-    main_loading_screen()
-    awaiting_mcp()
+    first_answer = main_loading_screen()
+    while first_answer.lower() == "help":
+        console.print("[bold yellow]This tool helps you manage bug fixes using AI and Git.[/]")
+        console.print("1. Ensure you're in a Git repository with uncommitted changes.")
+        console.print("2. MCP will create a temporary branch and monitor specified files for changes.")
+        console.print("3. Once changes are detected, you'll be prompted to accept or reject the fix.")
+        console.print("4. Accepted fixes will be committed; rejected ones will roll back to the previous state.")
+        first_answer = Prompt.ask("Type [bold green]begin[/] to start MCP", default="begin")
+    else:
+        awaiting_mcp()
     ask_bug_fix()
     awaiting_files()
 
