@@ -1,7 +1,8 @@
-import openai
+from openai import OpenAI
+import os
 import json
 
-OPENAI_API_KEY = ""
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 def generate_store_payload(title, stack_trace, git_diff, repo, branch, language):
     prompt = f"""
@@ -33,8 +34,8 @@ def generate_store_payload(title, stack_trace, git_diff, repo, branch, language)
         Return ONLY the JSON object.
         """
     
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}],
         temperature=0,
     )
