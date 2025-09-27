@@ -6,23 +6,29 @@ from rich.progress import SpinnerColumn, Progress, TextColumn
 from rich.prompt import Prompt
 from time import sleep
 import requests
+import pyfiglet
 
 console = Console()
 backend_url = "http://localhost:8000"
 
 
 def main_loading_screen():
-    title = Text("JASMA", style="bold magenta", justify="center")
+    ascii_banner = pyfiglet.figlet_format("JASMA", font="slant")
+    banner_text = Text(ascii_banner, style="bold magenta", justify="center")
+
+
     subtitle = Text("Multi-agent Pipeline & Validation System", style="bold cyan", justify="center")
-    
+
+    panel_content = f"{banner_text.plain}\n{subtitle.plain}"
+
     panel = Panel(
-        Align.center(Text("\n".join([title.plain, subtitle.plain]), justify="center")),
+        Align.center(Text(panel_content, justify="center")),
         border_style="bright_yellow",
         padding=(1, 4),
-        title="Welcome",
+        title="[bold cyan]Welcome[/]",
         subtitle="v0.1.0"
     )
-    
+
     console.clear()
     console.print(panel)
 
