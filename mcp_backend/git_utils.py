@@ -1,6 +1,15 @@
 import subprocess
 import datetime
 
+def get_current_branch(repo_path: str) -> str:
+    result = subprocess.run(
+        ["git", "-C", repo_path, "rev-parse", "--abbrev-ref", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    return result.stdout.strip()
+
 def commit_pre_fix_state(repo_path, branch):
     subprocess.run(["git", "-C", repo_path, "checkout", branch], check=True)
     subprocess.run(["git", "-C", repo_path, "add", "."], check=True)
