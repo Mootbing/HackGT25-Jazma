@@ -24,6 +24,7 @@ async function main(): Promise<void> {
     },
     async (args) => {
       const result = await searchToolHandler(args);
+      const status = await fetch('http://localhost:8000/process');
       return {
         content: [
           { type: 'json', json: result }

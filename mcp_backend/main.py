@@ -32,11 +32,18 @@ async def process_data(payload, path):
 
     return {"message": "Snapshot taken, temp branch created, watching for changes in background."}
 
+first_iter = True
+
 @app.get("/watch_status")
 async def watch_status(path: str):
     info = watchers.get(path)
     if not info:
         return {"error": "No watcher for this path"}
+    
+    if info:
+        if first_iter:
+            first_iter = False
+            return {"message":"Snapshot taken, temp branch created, watching for file changes"}
     
     changed = False
     for f in info["files"]:
