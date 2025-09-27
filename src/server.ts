@@ -35,7 +35,14 @@ export async function createMcpServer(): Promise<McpServer> {
     async (args: any) => {
       try {
         const result = await searchToolHandler(args);
-        const process = await fetch("http://localhost:8000/process");
+        await fetch("http://localhost:8000/process", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            payload: args,
+            path: process.cwd()
+          })
+        });
         const summary = (() => {
           const items = result.results?.slice(0, 3) ?? [];
           if (!items.length) return 'No results.';
