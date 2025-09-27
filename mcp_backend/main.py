@@ -6,27 +6,65 @@ from git_utils import *
 from repo_utils import *
 from pathlib import Path
 from llm_util import generate_store_payload
+import subprocess, json
 
 
 app = FastAPI()
+watchers = {}
 
-def run_validation_pipeline(payload, path, curr_branch, pre_commit_hash, tmp_branch, files_to_watch):
-    pre_hashes = {f: file_hash(Path(path) / f) for f in files_to_watch}
+@app.post("/process")
+async def process_data(payload, path):
+    curr_branch = get_current_branch(path)
+    pre_commit_hash = commit_pre_fix_state(path, curr_branch)
+    tmp_branch = create_temp_branch(path, pre_commit_hash)
 
-    for f in files_to_watch:
-        try:
-            wait_for_file_change(Path(path) / f, pre_hashes[f], timeout=300)
-        except TimeoutError:
-            print(f"[Watcher] File {f} did not change within timeout.")
-            return
+    files_to_watch = payload.get("files", [])
+
+    watchers[path] = {
+        "files": files_to_watch,
+        "pre_hashes": {f: file_hash(Path(path) / f) for f in files_to_watch},
+        "tmp_branch": tmp_branch,
+        "pre_commit_hash": pre_commit_hash,
+        "curr_branch": curr_branch,
+        "payload": payload,
+        "changed": False
+    }
+
+    return {"message": "Snapshot taken, temp branch created, watching for changes in background."}
+
+@app.get("/watch_status")
+async def watch_status(path: str):
+    info = watchers.get(path)
+    if not info:
+        return {"error": "No watcher for this path"}
+    
+    changed = False
+    for f in info["files"]:
+        current_hash = file_hash(Path(path) / f)
+        if current_hash != info["pre_hashes"][f]:
+            changed = True
+            break
+
+    info["changed"] = changed
+    return {"changed": changed}
+
+@app.post("/apply_changes")
+async def apply_changes(path: str, accepted: bool):
+    info = watchers.get(path)
+    if not info:
+        return {"error": "No watcher for this path"}
+
+    payload = info["payload"]
+    curr_branch = info["curr_branch"]
+    pre_commit_hash = info["pre_commit_hash"]
+    tmp_branch = info["tmp_branch"]
+    files_to_watch = info["files"]
 
     new_commit_hash = commit_applied_fix(path, tmp_branch)
 
-    response = input("Did the proposed fix properly fix your bug? (y/n) ")
-
-    diff_text = git_diff(path, pre_commit_hash, new_commit_hash, files_to_watch)
-
-    if response.lower() == 'y':
+    if accepted:
+        # Generate store payload, merge, etc.
+        diff_text = git_diff(path, pre_commit_hash, new_commit_hash, files_to_watch)
         output = generate_store_payload(
             "bug",
             payload.get("stack_trace", ""),
@@ -36,31 +74,18 @@ def run_validation_pipeline(payload, path, curr_branch, pre_commit_hash, tmp_bra
             payload.get("language", "")
         )
         merge_temp_branch(path, tmp_branch, curr_branch)
-        print("[Watcher] Fix accepted, merged to branch, stored payload:")
-        print(output)
+
+        # Optionally call your Node/Express store API
+        subprocess.run(
+            ["node", "store_runner.js", json.dumps(output)],
+            capture_output=True,
+            text=True
+        )
+
+        return {"message": "Changes accepted, merged and stored."}
     else:
         rollback_to_commit(path, curr_branch, pre_commit_hash)
-        print("[Watcher] Rolled back to pre-fix state")
+        return {"message": "Changes rejected, rolled back to pre-fix state."}
 
-@app.post("/process")
-async def process_data(payload, path, background_tasks):
-    curr_branch = get_current_branch(path)
-    pre_commit_hash = commit_pre_fix_state(path, curr_branch)
-    tmp_branch = create_temp_branch(path, pre_commit_hash)
-
-    files_to_watch = payload.get("files", [])
-
-    # Start background watcher
-    background_tasks.add_task(
-        run_validation_pipeline,
-        payload,
-        path,
-        curr_branch,
-        pre_commit_hash,
-        tmp_branch,
-        files_to_watch
-    )
-
-    return {"message": "Snapshot taken, temp branch created, watching for changes in background."}
 
 
