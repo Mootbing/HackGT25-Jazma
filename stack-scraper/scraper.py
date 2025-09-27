@@ -32,7 +32,69 @@ class StackOverflowScraper:
         self.timeout = timeout
         self.driver = None
         self.wait = None
+        self.scraped_ids_file = "scraped_question_ids.txt"
+        self.scraped_ids = set()
+        self.persistent_json_file = "stackoverflow_questions_persistent.json"
         
+    def load_scraped_ids(self) -> None:
+        """Load previously scraped question IDs from log file"""
+        try:
+            with open(self.scraped_ids_file, 'r', encoding='utf-8') as f:
+                self.scraped_ids = set(line.strip() for line in f if line.strip())
+            print(f"📋 Loaded {len(self.scraped_ids)} previously scraped question IDs")
+        except FileNotFoundError:
+            print("📋 No previous scrape log found, starting fresh")
+            self.scraped_ids = set()
+    
+    def save_scraped_id(self, question_id: str) -> None:
+        """Save a question ID to the log file"""
+        try:
+            with open(self.scraped_ids_file, 'a', encoding='utf-8') as f:
+                f.write(f"{question_id}\n")
+            self.scraped_ids.add(question_id)
+        except Exception as e:
+            print(f"⚠️  Warning: Could not save question ID {question_id}: {e}")
+    
+    def extract_question_id_from_url(self, url: str) -> str:
+        """Extract question ID from Stack Overflow URL"""
+        try:
+            # URL format: https://stackoverflow.com/questions/{id}/title-slug
+            parts = url.split('/questions/')
+            if len(parts) > 1:
+                question_part = parts[1].split('/')[0]
+                return question_part
+        except Exception:
+            pass
+        return None
+    
+    def is_question_already_scraped(self, question_id: str) -> bool:
+        """Check if question ID has already been scraped"""
+        return question_id in self.scraped_ids
+    
+    def load_existing_json_data(self) -> List[Dict]:
+        """Load existing data from persistent JSON file"""
+        try:
+            with open(self.persistent_json_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            print(f"📚 Loaded {len(data)} existing questions from {self.persistent_json_file}")
+            return data
+        except FileNotFoundError:
+            print(f"📚 No existing persistent file found, creating {self.persistent_json_file}")
+            return []
+        except json.JSONDecodeError:
+            print(f"⚠️  Warning: Corrupted JSON file, starting fresh")
+            return []
+    
+    def save_to_persistent_json(self, all_data: List[Dict]) -> bool:
+        """Save all data to the persistent JSON file"""
+        try:
+            with open(self.persistent_json_file, 'w', encoding='utf-8') as f:
+                json.dump(all_data, f, indent=2, ensure_ascii=False)
+            return True
+        except Exception as e:
+            print(f"❌ Error saving to persistent JSON: {e}")
+            return False
+    
     def setup_driver(self) -> webdriver.Chrome:
         """Create and configure Chrome WebDriver"""
         chrome_options = Options()
@@ -155,14 +217,32 @@ class StackOverflowScraper:
                 try:
                     question_data = self._extract_question_data(question, i + 1)
                     if question_data and question_data.get('link') != 'N/A':
+                        # Extract question ID and check if already scraped
+                        question_id = self.extract_question_id_from_url(question_data['link'])
+                        if question_id and self.is_question_already_scraped(question_id):
+                            print(f"  ⏭️  Skipping question {i + 1} - already scraped (ID: {question_id})")
+                            continue
+                        
                         # Scrape full question and answer content
-                        print(f"  🔗 Clicking on question {i + 1}: {question_data['title'][:60]}...")
+                        print(f"  🔗 Clicking on question {i + 1}: {question_data['title'][:60]}... (ID: {question_id})")
                         full_content = self.scrape_full_question_and_answer(question_data['link'])
                         
                         # Merge full content with basic data
                         question_data.update(full_content)
+                        question_data['question_id'] = question_id  # Add question ID to data
                         questions_data.append(question_data)
                         processed_count += 1
+                        
+                        # Log the question ID
+                        if question_id:
+                            self.save_scraped_id(question_id)
+                        
+                        # Save to persistent JSON incrementally
+                        if hasattr(self, 'persistent_data'):
+                            formatted_question = self.convert_to_new_format(question_data)
+                            self.persistent_data.append(formatted_question)
+                            self.save_to_persistent_json(self.persistent_data)
+                            print(f"  💾 Added to persistent JSON (Total: {len(self.persistent_data)} questions)")
                         
                         # Random delay between questions
                         delay = random.uniform(3, 7)
@@ -562,6 +642,115 @@ class StackOverflowScraper:
             print(f"Error saving to JSON: {str(e)}")
             return ""
     
+    def save_single_question_incremental(self, question_data: Dict, filename: str) -> bool:
+        """Save a single question incrementally to existing JSON file"""
+        try:
+            # Try to read existing file
+            existing_data = []
+            try:
+                with open(filename, 'r', encoding='utf-8') as f:
+                    existing_data = json.load(f)
+            except (FileNotFoundError, json.JSONDecodeError):
+                existing_data = []
+            
+            # Convert to new format
+            formatted_question = self.convert_to_new_format(question_data)
+            
+            # Add new question
+            existing_data.append(formatted_question)
+            
+            # Save back to file
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(existing_data, f, indent=2, ensure_ascii=False)
+            
+            print(f"  💾 Saved question {len(existing_data)} to {filename}")
+            return True
+            
+        except Exception as e:
+            print(f"  ❌ Error saving incremental data: {str(e)}")
+            return False
+    
+    def convert_to_new_format(self, question_data: Dict) -> Dict:
+        """Convert question data to the new format matching the schema"""
+        # Extract code blocks from question and answer
+        question_code = "\n\n".join(question_data.get('question_code', []))
+        answer_code = "\n\n".join(question_data.get('top_answer_code', []))
+        all_code = "\n\n".join([question_code, answer_code]).strip()
+        
+        # Determine type based on content
+        question_type = "solution" if question_data.get('top_answer_content') else "bug"
+        
+        # Extract tags
+        tags = question_data.get('tags', [])
+        if isinstance(tags, str):
+            tags = [tag.strip() for tag in tags.split(',') if tag.strip()]
+        
+        # Create metadata
+        metadata = {
+            "project": "stackoverflow",
+            "repo": None,
+            "commit": None,
+            "branch": None,
+            "os": None,
+            "runtime": None,
+            "language": self.extract_language_from_tags(tags),
+            "framework": self.extract_framework_from_tags(tags)
+        }
+        
+        return {
+            "type": question_type,
+            "title": question_data.get('title', ''),
+            "body": question_data.get('question_content', ''),
+            "stack_trace": None,  # SO questions don't typically have stack traces in structured format
+            "code": all_code if all_code else None,
+            "repro_steps": question_data.get('excerpt', ''),
+            "root_cause": None,
+            "resolution": question_data.get('top_answer_content', ''),
+            "severity": self.determine_severity(question_data),
+            "tags": tags,
+            "metadata": metadata,
+            "idempotency_key": question_data.get('question_id'),  # Use question ID as idempotency key
+            "related_ids": None,
+            "source_url": question_data.get('link', ''),
+            "question_id": question_data.get('question_id', ''),
+            "votes": question_data.get('votes', '0'),
+            "answers_count": question_data.get('answers', '0'),
+            "views": question_data.get('views', '0'),
+            "author": question_data.get('author', ''),
+            "scraped_at": question_data.get('scraped_at', '')
+        }
+    
+    def extract_language_from_tags(self, tags: List[str]) -> str:
+        """Extract programming language from tags"""
+        language_tags = {'python', 'javascript', 'java', 'c#', 'cpp', 'c++', 'c', 'php', 'ruby', 'go', 'rust', 'swift', 'kotlin', 'scala', 'r', 'matlab', 'typescript', 'html', 'css'}
+        for tag in tags:
+            if tag.lower() in language_tags:
+                return tag.lower()
+        return None
+    
+    def extract_framework_from_tags(self, tags: List[str]) -> str:
+        """Extract framework from tags"""
+        framework_tags = {'react', 'angular', 'vue', 'django', 'flask', 'spring', 'express', 'laravel', 'rails', 'asp.net', 'nodejs', 'jquery'}
+        for tag in tags:
+            if tag.lower() in framework_tags:
+                return tag.lower()
+        return None
+    
+    def determine_severity(self, question_data: Dict) -> str:
+        """Determine severity based on votes and views"""
+        try:
+            votes = int(question_data.get('votes', '0'))
+            views = int(question_data.get('views', '0'))
+            
+            if votes >= 10 or views >= 1000:
+                return "high"
+            elif votes >= 5 or views >= 500:
+                return "medium"
+            else:
+                return "low"
+        except (ValueError, TypeError):
+            return "low"
+    
     def save_to_csv(self, data: List[Dict], filename: str = None) -> str:
         """Save data to CSV file"""
         if not data:
@@ -663,6 +852,17 @@ class StackOverflowScraper:
             print(f"Max pages: {max_pages}")
             print(f"Headless mode: {self.headless}")
             
+            # Load existing data and IDs
+            self.load_scraped_ids()
+            self.persistent_data = self.load_existing_json_data()
+            print(f"📊 Starting with {len(self.persistent_data)} existing questions")
+            
+            # Set up incremental saving filename (for backup/session log)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            self.current_filename = f"stackoverflow_session_{timestamp}.json"
+            print(f"💾 Session backup saving to: {self.current_filename}")
+            print(f"💾 Persistent data in: {self.persistent_json_file}")
+            
             # Initialize driver once
             self.driver = self.setup_driver()
             
@@ -704,19 +904,21 @@ class StackOverflowScraper:
                     time.sleep(delay)
             
             if all_questions:
-                print(f"\n✅ Continuous scraping completed! Total: {len(all_questions)} questions")
+                print(f"\n✅ Continuous scraping completed! Session: {len(all_questions)} new questions")
+                print(f"� Total questions in database: {len(self.persistent_data)}")
+                print(f"📁 Persistent data: {self.persistent_json_file}")
+                print(f"📋 Question IDs logged: {self.scraped_ids_file}")
                 
                 # Display results
                 if display_results:
                     self.print_results(all_questions)
                 
-                # Save to files
-                if save_json:
-                    self.save_to_json(all_questions)
+                # Save CSV if requested (JSON already saved incrementally)
                 if save_csv:
                     self.save_to_csv(all_questions)
             else:
-                print("❌ No questions were collected")
+                print("❌ No new questions were collected")
+                print(f"📊 Total questions in database: {len(self.persistent_data)}")
             
             # Keep browser open briefly if not headless
             if not self.headless and all_questions:
