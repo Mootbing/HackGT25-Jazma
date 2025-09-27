@@ -18,7 +18,7 @@ export function Hero() {
             <span className="block mx-auto w-[13ch] text-center relative top-[1px]">
               <WordRotate
                 words={["Knowledge", "Documentation", "Context"]}
-                className="leading-[inherit] align-baseline"
+                className="leading-[inherit] align-baseline shiny-text"
               />
             </span>
           </span>
@@ -43,14 +43,20 @@ export function Hero() {
         <div className="max-w-full mx-auto mt-24 relative px-8">
           {/* Large Overlapping Circles Surrounding Mockup */}
           <div className="absolute inset-0 flex items-center justify-center">
-            {/* Golden Circle */}
-            <div className="absolute w-[800px] h-[800px] bg-gradient-to-br from-yellow-400 to-amber-600 rounded-full opacity-40 blur-2xl -translate-x-64"></div>
-            
-            {/* Silver Circle */}
-            <div className="absolute w-[800px] h-[800px] bg-gradient-to-br from-gray-300 to-gray-500 rounded-full opacity-40 blur-2xl translate-x-64"></div>
-            
-            {/* Overlapping Center (where they intersect) */}
-            <div className="absolute w-[800px] h-[800px] bg-gradient-to-br from-yellow-200 to-gray-400 rounded-full opacity-30 blur-3xl"></div>
+            {/* Golden Blob */}
+            <div className="absolute blob-move blob-delay-2s -translate-x-64">
+              <div className="w-[800px] h-[800px] bg-gradient-to-br from-yellow-400 to-amber-600 opacity-40 blur-2xl blob-shape"></div>
+            </div>
+
+            {/* Silver Blob */}
+            <div className="absolute blob-move blob-move-slow translate-x-64">
+              <div className="w-[800px] h-[800px] bg-gradient-to-br from-gray-300 to-gray-500 opacity-40 blur-2xl blob-shape"></div>
+            </div>
+
+            {/* Overlapping Center Blob */}
+            <div className="absolute blob-move blob-move-fast">
+              <div className="w-[800px] h-[800px] bg-gradient-to-br from-yellow-200 to-gray-400 opacity-30 blur-3xl blob-shape"></div>
+            </div>
           </div>
           
           {/* Simple Rectangle Outline for Video Overlay */}
