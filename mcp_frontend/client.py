@@ -10,19 +10,45 @@ console = Console()
 backend_url = "http://localhost:8000"
 
 def main():
-    title = Text()
-    title.append("JASPA", style="gold")
-    title.append(" TERMINAL CLIENT\n", style="white")
+    title = Text("JASPA", style="bold magenta", justify="center")
+    subtitle = Text("Multi-agent Pipeline & Validation System", style="bold cyan", justify="center")
     
     panel = Panel(
-        Align.center(title, vertical="middle"),
-        border_style="bright_blue",
-        padding=(2, 4),
-        expand=False
+        Align.center(Text("\n".join([title.plain, subtitle.plain]), justify="center")),
+        border_style="bright_yellow",
+        padding=(1, 4),
+        title="Welcome",
+        subtitle="v0.1.0"
     )
     
     console.clear()
     console.print(panel)
+    
+    for i in range(3):
+        console.print("Initializing" + "." * (i + 1), style="bold green", justify="center")
+        sleep(0.5)
+        console.clear()
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[bold red]Waiting for MCP request from Cursor..."),
+        transient=False
+    ) as progress:
+        task = progress.add_task("spinner", total=None)
+
+        while True:
+            try:
+                res = requests.get(f"{backend_url}/watch_status", params={"path": "/"})
+                data = res.json()
+                if data.get("message"):
+                    console.print(f"[green]{data['message']}[/green]")
+                    break
+            except requests.RequestException:
+                console.print("[red]Failed to reach backend, retrying...[/red]")
+
+            sleep(1)
+
+    console.print("[bold green]Detected MCP request![/bold green]")
 
     with Progress(
         SpinnerColumn(),
