@@ -3,13 +3,15 @@ from rich.panel import Panel
 from rich.align import Align
 from rich.text import Text
 from rich.progress import SpinnerColumn, Progress, TextColumn
+from rich.prompt import Prompt
 from time import sleep
 import requests
 
 console = Console()
 backend_url = "http://localhost:8000"
 
-def main():
+
+def main_loading_screen():
     title = Text("JASPA", style="bold magenta", justify="center")
     subtitle = Text("Multi-agent Pipeline & Validation System", style="bold cyan", justify="center")
     
@@ -23,12 +25,8 @@ def main():
     
     console.clear()
     console.print(panel)
-    
-    for i in range(3):
-        console.print("Initializing" + "." * (i + 1), style="bold green", justify="center")
-        sleep(0.5)
-        console.clear()
 
+def awaiting_mcp():
     with Progress(
         SpinnerColumn(),
         TextColumn("[bold red]Waiting for MCP request from Cursor..."),
@@ -48,8 +46,21 @@ def main():
 
             sleep(1)
 
+def ask_bug_fix():
+    answer = Prompt.ask(
+        f"[bold green]{"Did the proposed fix adequately address your bug?"}[/]",
+        choices=["y", "n"],
+        default="y"
+    )
+
+    if answer is "y":
+        console.print("[bold cyan]Great! Proceeding...[/]")
+    elif answer is "n":
+        console.print("[bold red]Rollback initiated.[/]")
+
     console.print("[bold green]Detected MCP request![/bold green]")
 
+def awaiting_files():
     with Progress(
         SpinnerColumn(),
         TextColumn("[bold blue]Waiting for file changes..."),
@@ -69,6 +80,12 @@ def main():
                 console.print("[red]Failed to reach backend, retrying...[/red]")
 
             sleep(1)
+
+def main():
+    main_loading_screen()
+    awaiting_mcp()
+    ask_bug_fix()
+    awaiting_files()
 
 
 
