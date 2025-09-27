@@ -147,7 +147,11 @@ class StackOverflowScraper:
             
             print(f"Processing {min(len(questions), max_questions)} questions...")
             
-            for i, question in enumerate(questions[:max_questions]):
+            processed_count = 0
+            for i, question in enumerate(questions):
+                if processed_count >= max_questions:
+                    break
+                    
                 try:
                     question_data = self._extract_question_data(question, i + 1)
                     if question_data and question_data.get('link') != 'N/A':
@@ -158,6 +162,7 @@ class StackOverflowScraper:
                         # Merge full content with basic data
                         question_data.update(full_content)
                         questions_data.append(question_data)
+                        processed_count += 1
                         
                         # Random delay between questions
                         delay = random.uniform(3, 7)
@@ -218,6 +223,7 @@ class StackOverflowScraper:
             ], "0")
             
             answer_count = self._safe_extract_text(question_element, [
+                ".s-post-summary--stats-item[title*='answer'] .s-post-summary--stats-item-number",
                 ".s-post-summary--stats-item:nth-child(2) .s-post-summary--stats-item-number",
                 ".status strong",
                 "[title*='answer']",
@@ -227,9 +233,11 @@ class StackOverflowScraper:
             # Skip questions without answers
             try:
                 if int(answer_count) == 0:
+                    print(f"  ⏭️  Skipping question {index} - no answers (title: {title[:50]}...)")
                     return None
             except (ValueError, TypeError):
                 # If answer_count is not a valid number, skip this question
+                print(f"  ⏭️  Skipping question {index} - invalid answer count: '{answer_count}'")
                 return None
             
             view_count = self._safe_extract_text(question_element, [
