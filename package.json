@@ -8,20 +8,23 @@
     "dev": "tsx src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
-    "migrate": "tsx scripts/migrate.ts"
+    "start:http": "node dist/http.js",
+    "test:mcp": "npm run build && tsx scripts/test-mcp.ts",
+    "ingest:docs": "npm run build && tsx scripts/ingest-docs.ts ./docs",
+    "test:llm": "npm run build && tsx scripts/test-llm-mcp.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.6.1",
+    "@ai-sdk/openai": "^2.0.38",
+    "@modelcontextprotocol/sdk": "^1.18.2",
+    "@supabase/supabase-js": "^2.45.4",
+    "ai": "^5.0.56",
     "dotenv": "^16.4.5",
-    "express": "^5.1.0",
+    "express": "^4.19.2",
     "openai": "^4.55.0",
-    "pg": "^8.12.0",
-    "pg-format": "^1.0.4",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/express": "^5.0.3",
-    "ts-node": "^10.9.2",
     "tsx": "^4.16.0",
     "typescript": "^5.9.2"
   }

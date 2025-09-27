@@ -12,7 +12,7 @@ backend_url = "http://localhost:8000"
 
 
 def main_loading_screen():
-    title = Text("JASPA", style="bold magenta", justify="center")
+    title = Text("JASMA", style="bold magenta", justify="center")
     subtitle = Text("Multi-agent Pipeline & Validation System", style="bold cyan", justify="center")
     
     panel = Panel(

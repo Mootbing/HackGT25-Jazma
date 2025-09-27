@@ -1,10 +1,6 @@
 import 'dotenv/config';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { z } from 'zod';
-import { createDbPool } from './lib/db.js';
-import { searchToolHandler, searchInputSchema } from './tools/search.js';
-import { storeToolHandler, storeInputSchema } from './tools/store.js';
+import { createMcpServer } from './server.js';
 
 async function main(): Promise<void> {
   const server = new McpServer({
