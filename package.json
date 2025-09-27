@@ -9,12 +9,15 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "start:http": "node dist/http.js",
-    "test:mcp": "npm run build && tsx scripts/test-mcp.ts"
+    "test:mcp": "npm run build && tsx scripts/test-mcp.ts",
+    "ingest:docs": "npm run build && tsx scripts/ingest-docs.ts ./docs",
+    "test:llm": "npm run build && tsx scripts/test-llm-mcp.ts"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^2.0.38",
     "@modelcontextprotocol/sdk": "^1.18.2",
     "@supabase/supabase-js": "^2.45.4",
-    "ai": "^4.0.30",
+    "ai": "^5.0.56",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "openai": "^4.55.0",
