@@ -13,9 +13,12 @@ import os
 app = FastAPI()
 watchers = {}
 
+BASE_PATH = Path.home() / "Projects" / "testProject"
+
 @app.post("/process")
 async def process_data(payload):
-    path = os.getcwd()
+    print("Received payload:", payload)
+    path = str(BASE_PATH)
 
     curr_branch = get_current_branch(path)
     pre_commit_hash = commit_pre_fix_state(path, curr_branch)
@@ -39,7 +42,7 @@ first_iter = True
 
 @app.get("/watch_status")
 async def watch_status():
-    path = os.getcwd()
+    path = str(BASE_PATH)
     info = watchers.get(path)
     if not info:
         return {"error": "No watcher for this path"}
@@ -61,7 +64,7 @@ async def watch_status():
 
 @app.post("/apply_changes")
 async def apply_changes(accepted: bool):
-    path = os.getcwd()
+    path = str(BASE_PATH)
     info = watchers.get(path)
     if not info:
         return {"error": "No watcher for this path"}
