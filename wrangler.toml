@@ -1,0 +1,26 @@
+name = "mcp-knowledge-base"
+main = "cloudflare-worker.js"
+compatibility_date = "2024-03-18"
+compatibility_flags = ["nodejs_compat"]
+
+[env.production]
+name = "mcp-knowledge-base-prod"
+
+# Environment variables
+[vars]
+# Add your environment variables here (non-sensitive ones)
+NODE_ENV = "production"
+
+# For sensitive variables like API keys, use:
+# wrangler secret put OPENAI_API_KEY
+# wrangler secret put DATABASE_URL
+
+# If you need to use external services
+[[services]]
+# Define any service bindings if needed
+
+# For larger applications, you might need:
+[build]
+command = "npm run build"
+cwd = "./"
+watch_dir = "./src"
