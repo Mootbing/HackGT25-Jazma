@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getDbPool } from '../lib/db.js';
+import { getSupabase } from '../lib/db.js';
 import { textEmbedding } from '../util/embeddings.js';
 
 export const searchInputSchema = z.object({
@@ -21,7 +21,7 @@ type SearchArgs = z.infer<typeof searchInputSchema>;
 export async function searchToolHandler(args: SearchArgs): Promise<{ results: Array<{
   id: string; title: string; summary: string; snippet?: string; score: number; metadata: Record<string, unknown>
 }> }> {
-  const pool = getDbPool();
+  const supabase = getSupabase();
   const topK = args.top_k ?? 10;
 
   // Build filter clauses
@@ -35,37 +35,38 @@ export async function searchToolHandler(args: SearchArgs): Promise<{ results: Ar
   if (typeof args.filters?.resolved === 'boolean') { params.push(args.filters.resolved); p++; filters.push(`resolved = $${p}`); }
   if (args.filters?.since) { params.push(args.filters.since); p++; filters.push(`created_at >= $${p}::timestamptz`); }
   if (args.filters?.tags?.length) { params.push(args.filters.tags); p++; filters.push(`tags && $${p}::text[]`); }
-  const where = filters.length ? `where ${filters.join(' and ')}` : '';
+  const where = filters.length ? `(${filters.join(' and ')})` : 'true';
 
-  // Lexical: ts_rank on search_vector
-  params.push(args.query);
-  p++;
-  const lexicalSql = `
-    select id, title, body, code, project, repo, language, tags, severity, resolved,
-           ts_rank(search_vector, plainto_tsquery('english', $${p})) as rank
-    from entries
-    ${where}
-    order by rank desc nulls last
-    limit ${Math.max(topK, 20)}
-  `;
-
+  // Lexical via RPC
   const [lexicalRes, queryEmbedding] = await Promise.all([
-    pool.query(lexicalSql, params),
+    supabase.rpc('rpc_hybrid_search', {
+      p_query: args.query,
+      p_limit: Math.max(topK, 20),
+      p_project: args.filters?.project ?? null,
+      p_repo: args.filters?.repo ?? null,
+      p_language: args.filters?.language ?? null,
+      p_tags: args.filters?.tags ?? null,
+      p_severity: args.filters?.severity ?? null,
+      p_resolved: args.filters?.resolved ?? null,
+      p_since: args.filters?.since ?? null
+    }),
     textEmbedding(args.query)
   ]);
 
   // Vector: similarity search on chunk embeddings
-  const vectorRes = await pool.query(
-    `select e.id, e.title, e.body, e.code, e.project, e.repo, e.language, e.tags, e.severity, e.resolved,
-            1 - (embedding <#> $1::vector) as sim
-       from embeddings m
-       join entries e on e.id = m.entry_id
-       ${where ? where.replace(/^where\s+/,'where ') : ''}
-       order by m.embedding <#> $1 asc
-       limit ${Math.max(topK, 20)}
-    `,
-    [queryEmbedding]
-  );
+  const vectorRes = await supabase
+    .rpc('match_embeddings', {
+      query_embedding: queryEmbedding,
+      match_count: Math.max(topK, 20),
+      p_project: args.filters?.project ?? null,
+      p_repo: args.filters?.repo ?? null,
+      p_language: args.filters?.language ?? null,
+      p_tags: args.filters?.tags ?? null,
+      p_severity: args.filters?.severity ?? null,
+      p_resolved: args.filters?.resolved ?? null,
+      p_since: args.filters?.since ?? null
+    })
+    .select();
 
   // Reciprocal rank fusion (lightweight)
   const fused = new Map<string, { score: number; row: any; }>();
@@ -79,8 +80,13 @@ export async function searchToolHandler(args: SearchArgs): Promise<{ results: Ar
       fused.set(id, { score, row });
     });
   };
-  addList(lexicalRes.rows, 'rank');
-  addList(vectorRes.rows, 'sim');
+  if (lexicalRes.error) throw lexicalRes.error;
+  const lexRows = lexicalRes.data ?? [];
+  addList(lexRows as any[], 'rank');
+
+  if ((vectorRes as any).error) throw (vectorRes as any).error;
+  const vecRows = (vectorRes as any).data ?? [];
+  addList(vecRows as any[], 'sim');
 
   const sorted = Array.from(fused.values())
     .sort((a, b) => b.score - a.score)
