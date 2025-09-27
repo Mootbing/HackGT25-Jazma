@@ -2,12 +2,13 @@ import { Button } from "@/components/ui/button"
 import { fkGrotesk } from "@/app/fonts"
 import { ArrowRight, Play } from "lucide-react"
 import { WordRotate } from "@/components/ui/word-rotate"
+import SmoothScrollLink from "@/components/ui/smooth-scroll-link"
 
 export function Hero() {
   return (
     <section className="relative py-24 md:py-32 overflow-hidden">
       <div className="container mx-auto px-4 text-center relative z-10">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-muted/50 text-sm text-muted-foreground mb-8">
+        <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full border border-border bg-muted/50 text-sm text-muted-foreground mb-4">
           <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
           MCP Protocol v1.0 Now Available
         </div>
@@ -33,9 +34,11 @@ export function Hero() {
             Get Started
             <ArrowRight className="w-4 h-4" />
           </Button>
-          <Button variant="outline" size="lg" className="gap-2 bg-transparent">
-            <Play className="w-4 h-4" />
-            Watch Demo
+          <Button asChild variant="outline" size="lg" className="gap-2 bg-transparent">
+            <SmoothScrollLink href="#demo" aria-label="Watch Demo">
+              <Play className="w-4 h-4" />
+              Watch Demo
+            </SmoothScrollLink>
           </Button>
         </div>
 
@@ -60,7 +63,7 @@ export function Hero() {
           </div>
           
           {/* Simple Rectangle Outline for Video Overlay */}
-          <div className="relative z-10">
+          <div className="relative z-10" id="demo">
             <div 
               className="w-full mx-auto bg-black border-2 border-white/20 rounded-2xl"
               style={{
