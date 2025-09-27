@@ -311,6 +311,24 @@ class StackOverflowScraper:
             print(f"Error extracting question data: {str(e)}")
             return None
     
+    def navigate_to_page(self, page_number: int) -> bool:
+        """
+        Navigate to a specific page of Stack Overflow questions
+        
+        Args:
+            page_number: Page number to navigate to
+            
+        Returns:
+            bool: Success status
+        """
+        try:
+            url = f"https://stackoverflow.com/questions?tab=newest&page={page_number}"
+            print(f"📄 Navigating to page {page_number}: {url}")
+            return self.navigate_to_stackoverflow(url)
+        except Exception as e:
+            print(f"Error navigating to page {page_number}: {str(e)}")
+            return False
+    
     def scrape_full_question_and_answer(self, question_url: str) -> Dict:
         """
         Navigate to a question page and scrape full content including top answer
@@ -538,6 +556,7 @@ class StackOverflowScraper:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             print(f"✅ Enhanced data saved to {filename}")
             print(f"📊 File includes full question content, code blocks, and top answers")
+            print(f"📈 Total questions saved: {len(data)}")
             return filename
         except Exception as e:
             print(f"Error saving to JSON: {str(e)}")
@@ -575,7 +594,7 @@ class StackOverflowScraper:
             return
         
         print(f"\n{'='*80}")
-        print(f"📊 ENHANCED SCRAPING: {len(questions)} QUESTIONS WITH FULL CONTENT")
+        print(f"📊 ENHANCED SCRAPING RESULTS: {len(questions)} QUESTIONS WITH FULL CONTENT")
         print(f"{'='*80}")
         
         for q in questions:
@@ -610,6 +629,108 @@ class StackOverflowScraper:
         
         print(f"\n🎉 Complete enhanced data saved to JSON file with full content!")
     
+    def scrape_continuous(self, 
+                         max_questions_total: int = 50,
+                         max_questions_per_page: int = 10,
+                         start_page: int = 1,
+                         max_pages: int = 10,
+                         save_json: bool = True,
+                         save_csv: bool = False,
+                         display_results: bool = True) -> List[Dict]:
+        """
+        Continuous scraping method that goes through multiple pages
+        
+        Args:
+            max_questions_total: Maximum total questions to collect
+            max_questions_per_page: Maximum questions to try per page
+            start_page: Page number to start from
+            max_pages: Maximum number of pages to scrape
+            save_json: Save results to JSON file
+            save_csv: Save results to CSV file
+            display_results: Print results to console
+            
+        Returns:
+            List of scraped question data
+        """
+        all_questions = []
+        current_page = start_page
+        
+        try:
+            print("🚀 Starting continuous Stack Overflow scraper...")
+            print(f"Target: {max_questions_total} total questions")
+            print(f"Max per page: {max_questions_per_page}")
+            print(f"Starting from page: {start_page}")
+            print(f"Max pages: {max_pages}")
+            print(f"Headless mode: {self.headless}")
+            
+            # Initialize driver once
+            self.driver = self.setup_driver()
+            
+            while len(all_questions) < max_questions_total and (current_page - start_page) < max_pages:
+                print(f"\n{'='*80}")
+                print(f"📄 SCRAPING PAGE {current_page} - Progress: {len(all_questions)}/{max_questions_total} questions")
+                print(f"{'='*80}")
+                
+                # Navigate to current page
+                if not self.navigate_to_page(current_page):
+                    print(f"❌ Failed to load page {current_page}, stopping...")
+                    break
+                
+                # Extract questions from this page
+                remaining_needed = max_questions_total - len(all_questions)
+                questions_to_get = min(max_questions_per_page, remaining_needed)
+                
+                page_questions = self.extract_questions(questions_to_get)
+                
+                if page_questions:
+                    all_questions.extend(page_questions)
+                    print(f"✅ Page {current_page}: Added {len(page_questions)} questions")
+                    print(f"📊 Total collected so far: {len(all_questions)}/{max_questions_total}")
+                else:
+                    print(f"⚠️  Page {current_page}: No valid questions found")
+                
+                # Check if we have enough questions
+                if len(all_questions) >= max_questions_total:
+                    print(f"\n🎯 Target reached! Collected {len(all_questions)} questions")
+                    break
+                
+                # Move to next page
+                current_page += 1
+                
+                # Add delay between pages
+                if current_page <= start_page + max_pages:
+                    delay = random.uniform(2, 4)
+                    print(f"⏰ Waiting {delay:.1f}s before next page...")
+                    time.sleep(delay)
+            
+            if all_questions:
+                print(f"\n✅ Continuous scraping completed! Total: {len(all_questions)} questions")
+                
+                # Display results
+                if display_results:
+                    self.print_results(all_questions)
+                
+                # Save to files
+                if save_json:
+                    self.save_to_json(all_questions)
+                if save_csv:
+                    self.save_to_csv(all_questions)
+            else:
+                print("❌ No questions were collected")
+            
+            # Keep browser open briefly if not headless
+            if not self.headless and all_questions:
+                print("\nKeeping browser open for 3 seconds...")
+                time.sleep(3)
+                
+        except Exception as e:
+            print(f"❌ Continuous scraping failed: {str(e)}")
+            
+        finally:
+            self.cleanup()
+        
+        return all_questions
+    
     def scrape(self, 
                url: str = "https://stackoverflow.com",
                max_questions: int = 10,
@@ -617,7 +738,7 @@ class StackOverflowScraper:
                save_csv: bool = False,
                display_results: bool = True) -> List[Dict]:
         """
-        Main scraping method
+        Single page scraping method (legacy)
         
         Args:
             url: URL to scrape
@@ -687,10 +808,10 @@ class StackOverflowScraper:
 
 def main():
     """Main execution function"""
-    print("Stack Overflow Enhanced Web Scraper v2.1")
-    print("=" * 50)
-    print("🔥 Now scraping full question and answer content!")
-    print("📊 This will take longer due to individual page visits...")
+    print("Stack Overflow Enhanced Web Scraper v2.2 - Continuous Mode")
+    print("=" * 60)
+    print("🔥 Now scraping full question and answer content across multiple pages!")
+    print("📊 This will take longer due to individual page visits and navigation...")
     print()
     
     # Configuration
@@ -699,17 +820,20 @@ def main():
         timeout=20  # Increased timeout for page loads
     )
     
-    # Run scraper with fewer questions since we're doing deep scraping
-    results = scraper.scrape(
-        url="https://stackoverflow.com",
-        max_questions=5,  # Reduced for detailed scraping
+    # Run continuous scraper across multiple pages
+    results = scraper.scrape_continuous(
+        max_questions_total=20,   # Total questions to collect
+        max_questions_per_page=5, # Questions to try per page
+        start_page=1,            # Starting page number
+        max_pages=10,            # Maximum pages to check
         save_json=True,
-        save_csv=False,  # Skip CSV for complex nested data
+        save_csv=False,          # Skip CSV for complex nested data
         display_results=True
     )
     
-    print(f"\n🎉 Enhanced scraping completed! Found {len(results)} questions with full content.")
+    print(f"\n🎉 Continuous enhanced scraping completed! Found {len(results)} questions with full content.")
     print(f"📁 Check the generated JSON file for complete question and answer data.")
+    print(f"🔄 Scraper navigated through multiple pages to find questions with answers.")
 
 
 if __name__ == "__main__":

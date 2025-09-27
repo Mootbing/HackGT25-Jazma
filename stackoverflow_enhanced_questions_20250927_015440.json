@@ -1,0 +1,262 @@
+[
+  {
+    "index": 11,
+    "title": "PWM FSP code not working in ARDUINO UNO R4 WIFI",
+    "link": "https://stackoverflow.com/questions/79776507/pwm-fsp-code-not-working-in-arduino-uno-r4-wifi",
+    "votes": "0",
+    "answers": "1",
+    "views": "33",
+    "tags": [
+      "c",
+      "arduino",
+      "arduino-uno",
+      "arduino-ide",
+      "arduino-esp32"
+    ],
+    "author": "Victor Prosper",
+    "excerpt": "I decided to program a PWM using an ARDUINO UNO R4 WIFI. I tried to configure the RENESAS RA4M1 microcontroller with the FSP libraries through the Arduino IDE. What I want to do is generate a PWM and ...",
+    "timestamp": "2 hours ago",
+    "scraped_at": "2025-09-27T01:52:11.502061",
+    "question_content": "I decided to program a PWM using an ARDUINO UNO R4 WIFI. I tried to configure the RENESAS RA4M1 microcontroller with the FSP libraries through the Arduino IDE. What I want to do is generate a PWM and commute a LED connected to the pin 107 of the RENESAS (ARDUINO D5~), but the code doesn't work. Here is my code:\n#include \"common_data.h\"\n#include \"hal_data.h\"\n#include \"vector_data.h\"\n\nvoid setup() {\n\n  clock_cfg();\n  gpio_cfg();\n  pwm_cfg();\n\n}\n\nvoid loop() {\n\n}\n\n  // Clock configuration function (user defined)\n\nvoid clock_cfg() {\n\n  static cgc_instance_ctrl_t cgc_instance_ctrl;\n  static cgc_cfg_t cgc_cfg;\n  static cgc_clocks_cfg_t cgc_clocks_cfg;\n  static cgc_divider_cfg_t cgc_divider_cfg;\n\n  cgc_divider_cfg.sckdivcr_b.pclkb_div = CGC_SYS_CLOCK_DIV_1;\n  cgc_divider_cfg.sckdivcr_b.pclkd_div = CGC_SYS_CLOCK_DIV_1;\n  cgc_divider_cfg.sckdivcr_b.iclk_div  = CGC_SYS_CLOCK_DIV_1;\n  cgc_divider_cfg.sckdivcr_b.pclka_div = CGC_SYS_CLOCK_DIV_1;\n  cgc_divider_cfg.sckdivcr_b.pclkc_div = CGC_SYS_CLOCK_DIV_1;\n  cgc_divider_cfg.sckdivcr_b.fclk_div  = CGC_SYS_CLOCK_DIV_1;\n  cgc_divider_cfg.sckdivcr_b.bclk_div  = CGC_SYS_CLOCK_DIV_1;\n\n  cgc_clocks_cfg.system_clock = CGC_CLOCK_HOCO;\n  cgc_clocks_cfg.divider_cfg = cgc_divider_cfg;\n  cgc_clocks_cfg.loco_state = CGC_CLOCK_CHANGE_STOP;\n  cgc_clocks_cfg.moco_state = CGC_CLOCK_CHANGE_STOP;\n  cgc_clocks_cfg.hoco_state = CGC_CLOCK_CHANGE_START;\n  cgc_clocks_cfg.mainosc_state = CGC_CLOCK_CHANGE_STOP;\n  cgc_clocks_cfg.pll_state = CGC_CLOCK_CHANGE_STOP;\n  cgc_clocks_cfg.pll2_state = CGC_CLOCK_CHANGE_STOP;\n\n  R_CGC_Open(&cgc_instance_ctrl, &cgc_cfg);\n  R_CGC_ClocksCfg(&cgc_instance_ctrl, &cgc_clocks_cfg);\n}\n\n  // PWM configuration function (user defined)\n\nvoid pwm_cfg() {\n\n  static gpt_instance_ctrl_t gpt_instance_ctrl;\n  static timer_cfg_t gpt_cfg;\n  static gpt_extended_cfg_t gpt_extended_cfg;\n\n  static uint32_t period = 48000000;\n  static uint32_t duty = 24000000;\n  static uint8_t channel = 0;\n\n  gpt_extended_cfg.gtioca.output_enabled = true;\n  gpt_extended_cfg.gtioca.stop_level = GPT_PIN_LEVEL_LOW;\n  gpt_extended_cfg.gtiocb.output_enabled = false;\n  gpt_extended_cfg.gtiocb.stop_level = GPT_PIN_LEVEL_LOW;\n  gpt_extended_cfg.start_source = GPT_SOURCE_NONE;\n  gpt_extended_cfg.stop_source = GPT_SOURCE_NONE;\n  gpt_extended_cfg.clear_source = GPT_SOURCE_NONE;\n  gpt_extended_cfg.capture_a_source = GPT_SOURCE_NONE;\n  gpt_extended_cfg.capture_b_source = GPT_SOURCE_NONE;\n  gpt_extended_cfg.count_up_source = GPT_SOURCE_NONE;\n  gpt_extended_cfg.count_down_source = GPT_SOURCE_NONE;\n  gpt_extended_cfg.capture_filter_gtioca = GPT_CAPTURE_FILTER_NONE;\n  gpt_extended_cfg.capture_filter_gtiocb = GPT_CAPTURE_FILTER_NONE;\n\n  gpt_cfg.mode = TIMER_MODE_PWM;\n  gpt_cfg.source_div = TIMER_SOURCE_DIV_1;\n  gpt_cfg.period_counts = period;\n  gpt_cfg.duty_cycle_counts = duty;\n  gpt_cfg.channel = channel;\n  gpt_cfg.p_callback = NULL;\n  gpt_cfg.p_context = NULL;\n  gpt_cfg.p_extend = &gpt_extended_cfg;\n\n  R_GPT_Open(&gpt_instance_ctrl, &gpt_cfg);\n  R_GPT_Start(&gpt_instance_ctrl);\n}\n\nvoid gpio_cfg() {\n\n  static ioport_instance_ctrl_t ioport_instance_ctrl;\n  static ioport_cfg_t ioport_cfg;\n\n  R_IOPORT_Open(&ioport_instance_ctrl, &ioport_cfg);\n  R_IOPORT_PinCfg(&ioport_instance_ctrl, BSP_IO_PORT_01_PIN_07, IOPORT_CFG_PERIPHERAL_PIN | IOPORT_PERIPHERAL_GPT0);\n}\nI have checked that the clocks are being configured since the \"delay()\" prebuild function is being affected when commuting the LED when I change the system clock divider. Also the GPIO can be configured if activated manually by setting the pin in output direction:\nR_IOPORT_PinCfg(&ioport_instance_ctrl, BSP_IO_PORT_01_PIN_07, IOPORT_CFG_PORT_DIRECTION_OUTPUT);\nAnd writting to it with the function:\nR_IOPORT_PinWrite(&g_ioport_ctrl, BSP_IO_PORT_01_PIN_07, BSP_IO_LEVEL_HIGH);\nMysteriously for me, the pin is not outputting the PWM I want to commute the LED as described in the code above. Anyone can tell me what I am doing wrong please?",
+    "question_code": [
+      "#include \"common_data.h\"\n#include \"hal_data.h\"\n#include \"vector_data.h\"\n\nvoid setup() {\n\n  clock_cfg();\n  gpio_cfg();\n  pwm_cfg();\n\n}\n\nvoid loop() {\n\n}\n\n  // Clock configuration function (user defined)\n\nvoid clock_cfg() {\n\n  static cgc_instance_ctrl_t cgc_instance_ctrl;\n  static cgc_cfg_t cgc_cfg;\n  static cgc_clocks_cfg_t cgc_clocks_cfg;\n  static cgc_divider_cfg_t cgc_divider_cfg;\n\n  cgc_divider_cfg.sckdivcr_b.pclkb_div = CGC_SYS_CLOCK_DIV_1;\n  cgc_divider_cfg.sckdivcr_b.pclkd_div = CGC_SYS_CLOCK_DIV_1;\n  cgc_divider_cfg.sckdivcr_b.iclk_div  = CGC_SYS_CLOCK_DIV_1;\n  cgc_divider_cfg.sckdivcr_b.pclka_div = CGC_SYS_CLOCK_DIV_1;\n  cgc_divider_cfg.sckdivcr_b.pclkc_div = CGC_SYS_CLOCK_DIV_1;\n  cgc_divider_cfg.sckdivcr_b.fclk_div  = CGC_SYS_CLOCK_DIV_1;\n  cgc_divider_cfg.sckdivcr_b.bclk_div  = CGC_SYS_CLOCK_DIV_1;\n\n  cgc_clocks_cfg.system_clock = CGC_CLOCK_HOCO;\n  cgc_clocks_cfg.divider_cfg = cgc_divider_cfg;\n  cgc_clocks_cfg.loco_state = CGC_CLOCK_CHANGE_STOP;\n  cgc_clocks_cfg.moco_state = CGC_CLOCK_CHANGE_STOP;\n  cgc_clocks_cfg.hoco_state = CGC_CLOCK_CHANGE_START;\n  cgc_clocks_cfg.mainosc_state = CGC_CLOCK_CHANGE_STOP;\n  cgc_clocks_cfg.pll_state = CGC_CLOCK_CHANGE_STOP;\n  cgc_clocks_cfg.pll2_state = CGC_CLOCK_CHANGE_STOP;\n\n  R_CGC_Open(&cgc_instance_ctrl, &cgc_cfg);\n  R_CGC_ClocksCfg(&cgc_instance_ctrl, &cgc_clocks_cfg);\n}\n\n  // PWM configuration function (user defined)\n\nvoid pwm_cfg() {\n\n  static gpt_instance_ctrl_t gpt_instance_ctrl;\n  static timer_cfg_t gpt_cfg;\n  static gpt_extended_cfg_t gpt_extended_cfg;\n\n  static uint32_t period = 48000000;\n  static uint32_t duty = 24000000;\n  static uint8_t channel = 0;\n\n  gpt_extended_cfg.gtioca.output_enabled = true;\n  gpt_extended_cfg.gtioca.stop_level = GPT_PIN_LEVEL_LOW;\n  gpt_extended_cfg.gtiocb.output_enabled = false;\n  gpt_extended_cfg.gtiocb.stop_level = GPT_PIN_LEVEL_LOW;\n  gpt_extended_cfg.start_source = GPT_SOURCE_NONE;\n  gpt_extended_cfg.stop_source = GPT_SOURCE_NONE;\n  gpt_extended_cfg.clear_source = GPT_SOURCE_NONE;\n  gpt_extended_cfg.capture_a_source = GPT_SOURCE_NONE;\n  gpt_extended_cfg.capture_b_source = GPT_SOURCE_NONE;\n  gpt_extended_cfg.count_up_source = GPT_SOURCE_NONE;\n  gpt_extended_cfg.count_down_source = GPT_SOURCE_NONE;\n  gpt_extended_cfg.capture_filter_gtioca = GPT_CAPTURE_FILTER_NONE;\n  gpt_extended_cfg.capture_filter_gtiocb = GPT_CAPTURE_FILTER_NONE;\n\n  gpt_cfg.mode = TIMER_MODE_PWM;\n  gpt_cfg.source_div = TIMER_SOURCE_DIV_1;\n  gpt_cfg.period_counts = period;\n  gpt_cfg.duty_cycle_counts = duty;\n  gpt_cfg.channel = channel;\n  gpt_cfg.p_callback = NULL;\n  gpt_cfg.p_context = NULL;\n  gpt_cfg.p_extend = &gpt_extended_cfg;\n\n  R_GPT_Open(&gpt_instance_ctrl, &gpt_cfg);\n  R_GPT_Start(&gpt_instance_ctrl);\n}\n\nvoid gpio_cfg() {\n\n  static ioport_instance_ctrl_t ioport_instance_ctrl;\n  static ioport_cfg_t ioport_cfg;\n\n  R_IOPORT_Open(&ioport_instance_ctrl, &ioport_cfg);\n  R_IOPORT_PinCfg(&ioport_instance_ctrl, BSP_IO_PORT_01_PIN_07, IOPORT_CFG_PERIPHERAL_PIN | IOPORT_PERIPHERAL_GPT0);\n}",
+      "R_IOPORT_PinCfg(&ioport_instance_ctrl, BSP_IO_PORT_01_PIN_07, IOPORT_CFG_PORT_DIRECTION_OUTPUT);",
+      "R_IOPORT_PinWrite(&g_ioport_ctrl, BSP_IO_PORT_01_PIN_07, BSP_IO_LEVEL_HIGH);"
+    ],
+    "top_answer_content": "",
+    "top_answer_code": [],
+    "top_answer_votes": "0",
+    "top_answer_accepted": false
+  },
+  {
+    "index": 5,
+    "title": "The undesired horizontal stretch when an item container enclosed by a grid item has grid item around it",
+    "link": "https://stackoverflow.com/questions/79776475/the-undesired-horizontal-stretch-when-an-item-container-enclosed-by-a-grid-item",
+    "votes": "0",
+    "answers": "1",
+    "views": "37",
+    "tags": [
+      "material-ui"
+    ],
+    "author": "WeDoTheBest4You",
+    "excerpt": "When a nested item container surrounded by a grid item as under, it gives the layout as shown below. As expected, it does not stretch horizontally and vertically. import Grid from '@mui/material/...",
+    "timestamp": "4 hours ago",
+    "scraped_at": "2025-09-27T01:52:28.438466",
+    "question_content": "When a nested item container surrounded by a grid item as under, it gives the layout as shown below. As expected, it does not stretch horizontally and vertically.\nimport Grid from '@mui/material/GridLegacy';\n\n<Grid container>\n   <Grid item> /* surrounding grid item */\n      <Grid container bgcolor={'red'}> /* nested item container */\n         <Grid item>Item around</Grid>\n      </Grid>\n   </Grid>\n</Grid>\nOutput:\nHowever, when the same nested item container, contains another item container within it, as shown by the below code, it gives the output shown underneath. Unexpectedly, the layout now it produced has a horizontal stretch or some extra space on the right side.\nCode 2\n <Grid container>\n        <Grid item>\n           <Grid container bgcolor={'red'}>\n              <Grid item>Item around</Grid>\n                <Grid item container bgcolor={'blue'}>\n                <Grid item>Item nested</Grid>\n              </Grid>\n          </Grid>\n       </Grid>\n    </Grid>\nOutput:\nThe expected layout:\nThe layout I would expect is the below one.\nIt may be possible to get the desired layout by the following code. The most nested item container is also required to be surrounded by another grid item as shown in the code. This is ok.\nStill, i would appreciate if someone can help me to know the reason for the \"Code 2\" failing to produce the expected layout, or in another words, what would be the reasons for the extra space on the right side of the layout produced by the \"Code 2\".\n  <Grid container>\n    <Grid item>\n      <Grid container bgcolor={'red'}>\n        <Grid item>Item around</Grid>\n        <Grid item> /* this surrounds the item container below */\n          <Grid item container bgcolor={'blue'}>\n            <Grid item>Item nested</Grid>\n          </Grid>\n        </Grid>\n      </Grid>\n    </Grid>\n  </Grid>",
+    "question_code": [
+      "import Grid from '@mui/material/GridLegacy';\n\n<Grid container>\n   <Grid item> /* surrounding grid item */\n      <Grid container bgcolor={'red'}> /* nested item container */\n         <Grid item>Item around</Grid>\n      </Grid>\n   </Grid>\n</Grid>",
+      "<Grid container>\n        <Grid item>\n           <Grid container bgcolor={'red'}>\n              <Grid item>Item around</Grid>\n                <Grid item container bgcolor={'blue'}>\n                <Grid item>Item nested</Grid>\n              </Grid>\n          </Grid>\n       </Grid>\n    </Grid>",
+      "<Grid container>\n    <Grid item>\n      <Grid container bgcolor={'red'}>\n        <Grid item>Item around</Grid>\n        <Grid item> /* this surrounds the item container below */\n          <Grid item container bgcolor={'blue'}>\n            <Grid item>Item nested</Grid>\n          </Grid>\n        </Grid>\n      </Grid>\n    </Grid>\n  </Grid>"
+    ],
+    "top_answer_content": "",
+    "top_answer_code": [],
+    "top_answer_votes": "0",
+    "top_answer_accepted": false
+  },
+  {
+    "index": 4,
+    "title": "OpenStack Swift CLI prefix-based tempurl not working",
+    "link": "https://stackoverflow.com/questions/79776448/openstack-swift-cli-prefix-based-tempurl-not-working",
+    "votes": "0",
+    "answers": "1",
+    "views": "26",
+    "tags": [
+      "command-line-interface",
+      "openstack",
+      "openstack-swift"
+    ],
+    "author": "Matthias",
+    "excerpt": "running swift tempurl --prefix-based GET 600 \"/v1/AUTH_project/container/my/prefix/\" \"mykey12345\" returns /v1/AUTH_project/container/my/prefix/?temp_url_sig=abc0987&...",
+    "timestamp": "6 hours ago",
+    "scraped_at": "2025-09-27T01:52:41.727462",
+    "question_content": "running\nswift tempurl --prefix-based GET 600 \"/v1/AUTH_project/container/my/prefix/\" \"mykey12345\"\nreturns\n/v1/AUTH_project/container/my/prefix/?temp_url_sig=abc0987&temp_url_expires=1758927814&temp_url_prefix=test/prefix/\nthen opening the genreated URL\nhttps://swift.example.com/object/v1/AUTH_project/container/my/prefix/testobject.txt?temp_url_sig=abc0987&temp_url_expires=1758927814&temp_url_prefix=test/prefix/\nreturns\n401 Unauthorized: Temp URL invalid\n( running\nswift tempurl GET 600 \"/v1/AUTH_project/container/my/prefix/testobject.txt\" \"mykey12345\"\nand opening the created URL works for the one object )",
+    "question_code": [
+      "swift tempurl --prefix-based GET 600 \"/v1/AUTH_project/container/my/prefix/\" \"mykey12345\"",
+      "/v1/AUTH_project/container/my/prefix/?temp_url_sig=abc0987&temp_url_expires=1758927814&temp_url_prefix=test/prefix/",
+      "https://swift.example.com/object/v1/AUTH_project/container/my/prefix/testobject.txt?temp_url_sig=abc0987&temp_url_expires=1758927814&temp_url_prefix=test/prefix/",
+      "401 Unauthorized: Temp URL invalid",
+      "swift tempurl GET 600 \"/v1/AUTH_project/container/my/prefix/testobject.txt\" \"mykey12345\""
+    ],
+    "top_answer_content": "",
+    "top_answer_code": [],
+    "top_answer_votes": "0",
+    "top_answer_accepted": false
+  },
+  {
+    "index": 1,
+    "title": "How can I know when a child element is created on a parent element in javascript/typescript?",
+    "link": "https://stackoverflow.com/questions/79776389/how-can-i-know-when-a-child-element-is-created-on-a-parent-element-in-javascript",
+    "votes": "-1",
+    "answers": "1",
+    "views": "61",
+    "tags": [
+      "javascript",
+      "typescript",
+      "custom-element"
+    ],
+    "author": "luckycoder",
+    "excerpt": "I have three custom components, MyParentElement and MyChildElement1 and MyChildElement2: class MyParentElement extends HTMLElement { connectedCallback() { console.log('MyParentElement ...",
+    "timestamp": "8 hours ago",
+    "scraped_at": "2025-09-27T01:52:55.205472",
+    "question_content": "I have three custom components, MyParentElement and MyChildElement1 and MyChildElement2:\nclass MyParentElement extends HTMLElement \n{\n  connectedCallback() \n  {\n    console.log('MyParentElement connectedCallback()');\n    for (let i = 0; i < this.children.length; ++i)\n    {\n      const elem = this.children[i];\n      if (elem.tagName.toLowerCase() == 'my-child-element-1' || elem.tagName.toLowerCase() == 'my-child-element-2')\n      {\n        console.log(`elem.sortValue: ${elem.sortValue}`);\n      }\n    }\n\n    setTimeout(() => \n    {\n      for (let i = 0; i < this.children.length; ++i)\n      {\n        const elem = this.children[i];\n        if (elem.tagName.toLowerCase() == 'my-child-element-1' || elem.tagName.toLowerCase() == 'my-child-element-2')\n        {\n          console.log(`elem.sortValue: ${elem.sortValue}`);\n        }\n      }\n    }, 10);\n  }\n}\ncustomElements.define(\"my-parent-element\", MyParentElement);\n\n\nclass MyChildElement1 extends HTMLElement \n{\n  constructor()\n  {\n    super();\n    console.log(`MyChildElement1: ${this.sortValue}`);\n  }\n\n  get sortValue() { return 1; }\n}\ncustomElements.define(\"my-child-element-1\", MyChildElement1);\n\n\nclass MyChildElement2 extends HTMLElement \n{\n  constructor()\n  {\n    super();\n    console.log(`MyChildElement2: ${this.sortValue}`);\n  }\n\n  get sortValue() { return 2; }\n}\n\ncustomElements.define(\"my-child-element-2\", MyChildElement2);\n<my-parent-element>\n  <my-child-element-1></my-child-element-1>\n  <my-child-element-2></my-child-element-2>\n</my-parent-element>\nRun code snippet\nExpand\nWhen connectedCallback() is called for MyParentElement, sortValue gives me undefined. After the constructor is called for the two child elements, sortValue will work as expected.\nIs there a way to know in the parent element when the child elements are ready without a timeout? MutationObserver didn't seem to work for children that already exist as part of the HTML (but it will work if I create the elements and use appendChild(), however I am hoping to avoid that).",
+    "question_code": [
+      "class MyParentElement extends HTMLElement \n{\n  connectedCallback() \n  {\n    console.log('MyParentElement connectedCallback()');\n    for (let i = 0; i < this.children.length; ++i)\n    {\n      const elem = this.children[i];\n      if (elem.tagName.toLowerCase() == 'my-child-element-1' || elem.tagName.toLowerCase() == 'my-child-element-2')\n      {\n        console.log(`elem.sortValue: ${elem.sortValue}`);\n      }\n    }\n\n    setTimeout(() => \n    {\n      for (let i = 0; i < this.children.length; ++i)\n      {\n        const elem = this.children[i];\n        if (elem.tagName.toLowerCase() == 'my-child-element-1' || elem.tagName.toLowerCase() == 'my-child-element-2')\n        {\n          console.log(`elem.sortValue: ${elem.sortValue}`);\n        }\n      }\n    }, 10);\n  }\n}\ncustomElements.define(\"my-parent-element\", MyParentElement);\n\n\nclass MyChildElement1 extends HTMLElement \n{\n  constructor()\n  {\n    super();\n    console.log(`MyChildElement1: ${this.sortValue}`);\n  }\n\n  get sortValue() { return 1; }\n}\ncustomElements.define(\"my-child-element-1\", MyChildElement1);\n\n\nclass MyChildElement2 extends HTMLElement \n{\n  constructor()\n  {\n    super();\n    console.log(`MyChildElement2: ${this.sortValue}`);\n  }\n\n  get sortValue() { return 2; }\n}\n\ncustomElements.define(\"my-child-element-2\", MyChildElement2);",
+      "<my-parent-element>\n  <my-child-element-1></my-child-element-1>\n  <my-child-element-2></my-child-element-2>\n</my-parent-element>"
+    ],
+    "top_answer_content": "",
+    "top_answer_code": [],
+    "top_answer_votes": "0",
+    "top_answer_accepted": false
+  },
+  {
+    "index": 8,
+    "title": "Stripe Embedded Checkout: Default discount code that user can remove?",
+    "link": "https://stackoverflow.com/questions/79776339/stripe-embedded-checkout-default-discount-code-that-user-can-remove",
+    "votes": "0",
+    "answers": "1",
+    "views": "24",
+    "tags": [
+      "stripe-payments"
+    ],
+    "author": "Marving Moréton",
+    "excerpt": "I’m using Stripe Embedded Checkout and want to apply a discount code automatically when the session starts, but still let the customer remove it if they choose. I passed discounts: [{ promotion_code: ...",
+    "timestamp": "9 hours ago",
+    "scraped_at": "2025-09-27T01:53:13.059549",
+    "question_content": "I’m using Stripe Embedded Checkout and want to apply a discount code automatically when the session starts, but still let the customer remove it if they choose.\nI passed discounts: [{ promotion_code: \"promo_123\" }] when creating the Checkout Session. The discount applies correctly, but the user cannot remove it in the UI. I expected the discount to show up pre-applied with the option to remove it.\nIs this supported in Embedded Checkout, or is there a workaround?",
+    "question_code": [],
+    "top_answer_content": "",
+    "top_answer_code": [],
+    "top_answer_votes": "0",
+    "top_answer_accepted": false
+  },
+  {
+    "index": 4,
+    "title": "Why don’t pointers appear in Python Tutor’s memory visualization in C?",
+    "link": "https://stackoverflow.com/questions/79776310/why-don-t-pointers-appear-in-python-tutor-s-memory-visualization-in-c",
+    "votes": "2",
+    "answers": "2",
+    "views": "63",
+    "tags": [
+      "c",
+      "pointers"
+    ],
+    "author": "Bilal",
+    "excerpt": "I’m new to C and I’m trying to understand how pointers work. In this piece of code, when I run it on Python Tutor (pythontutor.com) to see how the stack and heap work, I never see the pointer being .....",
+    "timestamp": "10 hours ago",
+    "scraped_at": "2025-09-27T01:53:25.336656",
+    "question_content": "I’m new to C and I’m trying to understand how pointers work. In this piece of code, when I run it on Python Tutor (pythontutor.com) to see how the stack and heap work, I never see the pointer being created in either the stack or the heap. Yet, I am able to printf the values that the pointer points to. I don’t understand why the pointer isn’t visible in the memory visualization.\n#include <stdio.h>\n#include <stdlib.h>\n\nint main(void) {\n    int length = 5;\n\n  \n    int *numbers[length];\n\n    for (int i = 0; i < length; i++) {\n        numbers[i] = malloc(sizeof(int));\n        if (!numbers[i]) {\n            perror(\"malloc\");\n            exit(1);\n        }\n        *numbers[i] = i * 10;\n    }\n     for (int i = 0; i < length; i++) {\n        printf(\"numbers[%d] = %d (address=%p)\\n\", i, *numbers[i], (void*)numbers[i]); // It works\n    }\n    \n    return 0;\n}",
+    "question_code": [
+      "#include <stdio.h>\n#include <stdlib.h>\n\nint main(void) {\n    int length = 5;\n\n  \n    int *numbers[length];\n\n    for (int i = 0; i < length; i++) {\n        numbers[i] = malloc(sizeof(int));\n        if (!numbers[i]) {\n            perror(\"malloc\");\n            exit(1);\n        }\n        *numbers[i] = i * 10;\n    }\n     for (int i = 0; i < length; i++) {\n        printf(\"numbers[%d] = %d (address=%p)\\n\", i, *numbers[i], (void*)numbers[i]); // It works\n    }\n    \n    return 0;\n}"
+    ],
+    "top_answer_content": "",
+    "top_answer_code": [],
+    "top_answer_votes": "0",
+    "top_answer_accepted": false
+  },
+  {
+    "index": 2,
+    "title": "How to semantically indicate that a webpage is available in multiple languages",
+    "link": "https://stackoverflow.com/questions/79776281/how-to-semantically-indicate-that-a-webpage-is-available-in-multiple-languages",
+    "votes": "0",
+    "answers": "2",
+    "views": "45",
+    "tags": [
+      "html",
+      "internationalization",
+      "standards"
+    ],
+    "author": "mattp",
+    "excerpt": "Is there a standard way that an HTML page written in one (human) language can indicate that a translation is available in another language? I know that I can mark up some text manually, saying ...",
+    "timestamp": "11 hours ago",
+    "scraped_at": "2025-09-27T01:53:42.779500",
+    "question_content": "Is there a standard way that an HTML page written in one (human) language can indicate that a translation is available in another language? I know that I can mark up some text manually, saying something like\n<p>This article is also available <a href=\"//www.example.com/page1-es.html\">in Spanish</a></p>\nwhich will be seen by a user, but I'm wondering whether there is something in pure HTML/CSS that will trigger browser behaviour (in a browser which is suitably aware), similar to the way that some browsers offer to translate a page which may not be in the user's native language. I'm after a solution that works in a stateless way, i.e the translations will be at alternative URLs on a per-language basis, with those translations already having been prepared by me.\nNote that this mechanism by which a browser offers a translation doesn't fit my needs because a) those are typically machine translations, and b) I wish it to apply in the cases whereby a user might choose to read a page in languages other than their own, as would be the case in a language-learning context.\nTo be clear: I'm not asking about the mechanism by which some sites have a per-user preference for language, such that a given URL will render differently based on the value of that user setting. The solution I'm after needs to work for a static site.",
+    "question_code": [
+      "<p>This article is also available <a href=\"//www.example.com/page1-es.html\">in Spanish</a></p>"
+    ],
+    "top_answer_content": "",
+    "top_answer_code": [],
+    "top_answer_votes": "0",
+    "top_answer_accepted": false
+  },
+  {
+    "index": 8,
+    "title": "CREATE FUNCTION resulting in Unterminated dollar-quoted string error",
+    "link": "https://stackoverflow.com/questions/79776223/create-function-resulting-in-unterminated-dollar-quoted-string-error",
+    "votes": "2",
+    "answers": "1",
+    "views": "46",
+    "tags": [
+      "postgresql",
+      "heidisql"
+    ],
+    "author": "kraemerpw",
+    "excerpt": "I am posting this question here because I feel like emails I have sent to PostgreSQL mailing lists (pgsql-novice@lists.postgresql.org in particular) have not been going through. I am fairly certain .....",
+    "timestamp": "12 hours ago",
+    "scraped_at": "2025-09-27T01:53:55.920620",
+    "question_content": "I am posting this question here because I feel like emails I have sent to PostgreSQL mailing lists (pgsql-novice@lists.postgresql.org in particular) have not been going through. I am fairly certain that the question below did not get through, but I apologize if anyone has already seen this question....\nI am using a HeidiSQL client to query a PostgreSQL database. I find myself very often creating multiple step queries similar to the following where I enter the same dates in multiple places...\nWITH q_step_1 AS (\n   SELECT .... FROM ...\n   WHERE ord_date >= '2024-01-01'),\nq_step_2 AS (\n   SELECT ... FROM ...\n   WHERE inv_date >= '2024-01-01')\nSELECT ...\nFROM q_step_1\n   LEFT JOIN q_step_2 ON .....\nI would like to come up with a way that I can define the dates I want in one place, and refer to these definitions in my actual queries.\nI am looking into using variables and/or parameters, but the information I found made me believe that in my particular environment, these might not be viable options (please correct me if I am wrong). The most promising option seemed to be creating a FUNCTION similar to the following:\nCREATE FUNCTION pk_get_date() RETURNS DATE\n   AS $$SELECT '2024-01-01'::DATE;$$\n   LANGUAGE SQL IMMUTABLE;\nI have tried modifying the above in a number of ways, but I always get the following error:\nERROR: unterminated dollar-quoted string at or near \"$$SELECT '2024-01-01'::DATE\"\nLINE 2: RETURNS DATE AS $$SELECT '2024-01-01'::DATE\nIf anyone here can suggest how I might be able to get around this error, or suggest a different / better way I can accomplish my objective, I would greatly appreciate it.",
+    "question_code": [
+      "WITH q_step_1 AS (\n   SELECT .... FROM ...\n   WHERE ord_date >= '2024-01-01'),\nq_step_2 AS (\n   SELECT ... FROM ...\n   WHERE inv_date >= '2024-01-01')\nSELECT ...\nFROM q_step_1\n   LEFT JOIN q_step_2 ON .....",
+      "CREATE FUNCTION pk_get_date() RETURNS DATE\n   AS $$SELECT '2024-01-01'::DATE;$$\n   LANGUAGE SQL IMMUTABLE;",
+      "ERROR: unterminated dollar-quoted string at or near \"$$SELECT '2024-01-01'::DATE\"\nLINE 2: RETURNS DATE AS $$SELECT '2024-01-01'::DATE"
+    ],
+    "top_answer_content": "",
+    "top_answer_code": [],
+    "top_answer_votes": "0",
+    "top_answer_accepted": false
+  },
+  {
+    "index": 5,
+    "title": "How to figure out command name for actions in VS for keybinding?",
+    "link": "https://stackoverflow.com/questions/79776190/how-to-figure-out-command-name-for-actions-in-vs-for-keybinding",
+    "votes": "0",
+    "answers": "1",
+    "views": "8",
+    "tags": [
+      "visual-studio"
+    ],
+    "author": "Leah T",
+    "excerpt": "To change/assign the keyboard shortcuts in Visual Studio, you need to know the command name. The options window does support a search and a \"Press shortcut keys\" experience, but those don't ...",
+    "timestamp": "13 hours ago",
+    "scraped_at": "2025-09-27T01:54:07.421806",
+    "question_content": "To change/assign the keyboard shortcuts in Visual Studio, you need to know the command name.\nThe options window does support a search and a \"Press shortcut keys\" experience, but those don't work for every scenario.\nsometimes the command name doesn't match the feature/action/menu/window title/etc.\ncommand names aren't always documented\nsome commands don't have a pre-existing keyboard shortcut\nSo how else can you find the command name?",
+    "question_code": [],
+    "top_answer_content": "",
+    "top_answer_code": [],
+    "top_answer_votes": "0",
+    "top_answer_accepted": false
+  },
+  {
+    "index": 1,
+    "title": "PostgreSQL Check Constraint or check in stored procedure",
+    "link": "https://stackoverflow.com/questions/79776168/postgresql-check-constraint-or-check-in-stored-procedure",
+    "votes": "0",
+    "answers": "1",
+    "views": "52",
+    "tags": [
+      "sql",
+      "postgresql",
+      "relational-model"
+    ],
+    "author": "Francesco Zaffaroni",
+    "excerpt": "I am working on a data model for recording daily construction work reports in PostgreSQL. A work report is composed by many rows, of three exclusive subtypes: People, Materials and Equipment. Each ...",
+    "timestamp": "13 hours ago",
+    "scraped_at": "2025-09-27T01:54:24.025879",
+    "question_content": "I am working on a data model for recording daily construction work reports in PostgreSQL.\nA work report is composed by many rows, of three exclusive subtypes: People, Materials and Equipment.\nEach work report is daily and details work performed on one job and has one Foreman.\nCurrently the data model has the following relevant tables (I am omitting details of the WorkReportRow and subtypes):\nJob\n+---------------------+\n| JobCode          PK |\n+---------------------+\n| JobName             |\n| Address             |\n+---------------------+\n\nWorkReport\n+---------------------+\n| JobCode        PK.1 |\n| Date           PK.2 |\n+---------------------+\n| Foreman          FK | -> To PersonCode in Person table\n+---------------------+\n\nPerson\n+---------------------+\n| PersonCode       PK |\n+---------------------+\n| InsuranceNumber     |\n+---------------------+\n\nRole\n+---------------------+\n| RoleCode         PK |\n+---------------------+\n\nPersonRole\n+---------------------+\n| RoleCode    PK.1 FK | -> to RoleCode in Role table\n| PersonCode  PK.2 FK | -> to PersonCode in Person table\n+---------------------+\nPlease note that a person can have more than one role.\nI have to enforce a rule where the foreman for each WorkReport is a Person that in the Role has at least Foreman.\nDue to the nature of the constraint I'd like for it to be enforced in the database. Ideally I'd add a view called Foreman:\nCREATE OR REPLACE VIEW Foremen AS\n  SELECT p.PersonCode FROM Person p\n  JOIN PersonRole pr on p.PersonCode = pr.PersonCode\n  WHERE pr.RoleCode = 'Foreman'\nAnd then in the WorkReport table the Foreman FK would point to the Foremen view, the problem is that PostgreSQL apparently doesn't support FK to views.\nThe two options I see now are:\n1. a CHECK constraint in the WorkReport table like this:\nADD CONSTRAINT chk_foreman\nCHECK (\n  EXISTS (\n    SELECT 1\n    FROM \"PersonRole\" pr\n    WHERE pr.\"PersonCode\" = \"WorkReport\".\"Foreman\"\n    AND pr.\"RoleCode\" = 'Foreman'\n  )\n);\nI like this solution as it is in the \"schema\" of the database, therefore impossible to violate, but I don't like to have to per form a query in a check as it looks wasteful.\nEDIT: It was correctly pointed out in the comments that CHECK doesn't support queries to other tables in the database. The correct statement defined in the SQL standard would be ASSERTION, which is unfortunately not implemented in any RBDMS. This leaves, without duplicating data with a Foremen table or other data model changes (Subtyped for Person) only the following solution.\n2. A check in the stored procedure (current solution)\nDue to the need to keep integrity (between WorkReport, WorkReportRow and RowPerson/RowMaterial/RowEquipment) WorkReport insertion is already handled by a stored procedure.\nCurrently I added this check in the stored procedure:\n  SELECT EXISTS (\n    SELECT 1\n    FROM \"PersonRole\"\n    WHERE \"PersonCode\" = P_Foreman\n    AND \"RoleCode\" = 'Foreman'\n  ) INTO is_foreman;\n\n  IF NOT is_foreman THEN\n    RAISE EXCEPTION 'Error: Person % is not a Foreman.', P_Foreman;\n  END IF;\nThe issue I have with the current implementation is that the check is performed at the Procedure level, and not as a schema constraint, which I think logically would be the best solution.\nDo you have any input on this based on the relational model rules and standard?",
+    "question_code": [
+      "Job\n+---------------------+\n| JobCode          PK |\n+---------------------+\n| JobName             |\n| Address             |\n+---------------------+\n\nWorkReport\n+---------------------+\n| JobCode        PK.1 |\n| Date           PK.2 |\n+---------------------+\n| Foreman          FK | -> To PersonCode in Person table\n+---------------------+\n\nPerson\n+---------------------+\n| PersonCode       PK |\n+---------------------+\n| InsuranceNumber     |\n+---------------------+\n\nRole\n+---------------------+\n| RoleCode         PK |\n+---------------------+\n\nPersonRole\n+---------------------+\n| RoleCode    PK.1 FK | -> to RoleCode in Role table\n| PersonCode  PK.2 FK | -> to PersonCode in Person table\n+---------------------+",
+      "CREATE OR REPLACE VIEW Foremen AS\n  SELECT p.PersonCode FROM Person p\n  JOIN PersonRole pr on p.PersonCode = pr.PersonCode\n  WHERE pr.RoleCode = 'Foreman'",
+      "ADD CONSTRAINT chk_foreman\nCHECK (\n  EXISTS (\n    SELECT 1\n    FROM \"PersonRole\" pr\n    WHERE pr.\"PersonCode\" = \"WorkReport\".\"Foreman\"\n    AND pr.\"RoleCode\" = 'Foreman'\n  )\n);",
+      "SELECT EXISTS (\n    SELECT 1\n    FROM \"PersonRole\"\n    WHERE \"PersonCode\" = P_Foreman\n    AND \"RoleCode\" = 'Foreman'\n  ) INTO is_foreman;\n\n  IF NOT is_foreman THEN\n    RAISE EXCEPTION 'Error: Person % is not a Foreman.', P_Foreman;\n  END IF;",
+      "WorkReport",
+      "Person",
+      "Role",
+      "Foreman",
+      "Foremen",
+      "CHECK"
+    ],
+    "top_answer_content": "",
+    "top_answer_code": [],
+    "top_answer_votes": "0",
+    "top_answer_accepted": false
+  }
+]
