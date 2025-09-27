@@ -35,7 +35,16 @@ export async function createMcpServer(): Promise<McpServer> {
     async (args: any) => {
       try {
         const result = await searchToolHandler(args);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+        const summary = (() => {
+          const items = result.results?.slice(0, 3) ?? [];
+          if (!items.length) return 'No results.';
+          const lines = items.map((r, i) => `${i + 1}. ${r.title} — ${r.summary}`);
+          return `Top findings:\n${lines.join('\n')}`;
+        })();
+        return { content: [
+          { type: 'json', json: result },
+          { type: 'text', text: summary }
+        ] } as any;
       } catch (err: any) {
         const message = err?.message || 'search failed';
         const details = err?.error || err?.data || err;
@@ -79,7 +88,7 @@ export async function createMcpServer(): Promise<McpServer> {
     async (args: any) => {
       try {
         const result = await storeToolHandler(args);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+        return { content: [{ type: 'json', json: result }] } as any;
       } catch (err: any) {
         const message = err?.message || 'store failed';
         const details = err?.error || err?.data || err;
