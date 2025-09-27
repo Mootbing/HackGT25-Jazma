@@ -1,0 +1,11 @@
+# Supabase and database dependencies
+supabase>=2.0.0
+asyncio-throttle>=1.0.2
+
+# Utility dependencies
+python-decouple>=3.8
+pathlib2>=2.3.7
+
+# Optional: For real embeddings (uncomment if needed)
+# openai>=1.0.0
+# sentence-transformers>=2.2.0
