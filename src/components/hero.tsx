@@ -1,0 +1,64 @@
+import { Button } from "@/components/ui/button"
+import { ArrowRight, Play } from "lucide-react"
+
+export function Hero() {
+  return (
+    <section className="relative py-24 md:py-32 overflow-hidden">
+      <div className="container mx-auto px-4 text-center relative z-10">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-muted/50 text-sm text-muted-foreground mb-8">
+          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+          MCP Protocol v1.0 Now Available
+        </div>
+
+        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-balance mb-6 leading-tight">
+            jasma
+          <br />
+          <span className="text-muted-foreground">Developer Knowledge Sharing</span>
+        </h1>
+
+        <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-12 text-balance leading-relaxed">
+            Connect coding agents to a shared bugfix knowledge base with a standardized protocol. Build faster, smarter developer tools that can instantly retrieve past fixes and apply them in real time.
+        </p>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+          <Button size="lg" className="gap-2">
+            Get Started
+            <ArrowRight className="w-4 h-4" />
+          </Button>
+          <Button variant="outline" size="lg" className="gap-2 bg-transparent">
+            <Play className="w-4 h-4" />
+            Watch Demo
+          </Button>
+        </div>
+
+        {/* Safari Mockup with Mastercard-style Overlapping Circles */}
+        <div className="max-w-full mx-auto mt-24 relative px-8">
+          {/* Large Overlapping Circles Surrounding Mockup */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            {/* Golden Circle */}
+            <div className="absolute w-[800px] h-[800px] bg-gradient-to-br from-yellow-400 to-amber-600 rounded-full opacity-40 blur-2xl -translate-x-64"></div>
+            
+            {/* Silver Circle */}
+            <div className="absolute w-[800px] h-[800px] bg-gradient-to-br from-gray-300 to-gray-500 rounded-full opacity-40 blur-2xl translate-x-64"></div>
+            
+            {/* Overlapping Center (where they intersect) */}
+            <div className="absolute w-[800px] h-[800px] bg-gradient-to-br from-yellow-200 to-gray-400 rounded-full opacity-30 blur-3xl"></div>
+          </div>
+          
+          {/* Simple Rectangle Outline for Video Overlay */}
+          <div className="relative z-10">
+            <div 
+              className="w-full mx-auto bg-black border-2 border-white/20 rounded-2xl"
+              style={{
+                aspectRatio: "1203/753",
+                maxWidth: "1203px"
+              }}
+            >
+              {/* This rectangle is ready for video overlay */}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
