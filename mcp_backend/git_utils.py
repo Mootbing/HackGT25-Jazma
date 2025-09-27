@@ -45,3 +45,12 @@ def rollback_to_commit(repo_path, target_branch, commit_hash):
     subprocess.run(["git", "-C", repo_path, "checkout", target_branch], check=True)
     subprocess.run(["git", "-C", repo_path, "reset", "--hard", commit_hash], check=True)
 
+def git_diff(repo_path: str, from_commit: str, to_commit: str, files: list[str] = None):
+    cmd = ["git", "-C", repo_path, "diff", from_commit, to_commit]
+    if files:
+        cmd += files
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"Git diff failed: {result.stderr}")
+    return result.stdout
+
