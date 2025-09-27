@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/button"
+import { fkGrotesk } from "@/app/fonts"
 import { ArrowRight, Play } from "lucide-react"
+import { WordRotate } from "@/components/ui/word-rotate"
 
 export function Hero() {
   return (
@@ -10,10 +12,16 @@ export function Hero() {
           MCP Protocol v1.0 Now Available
         </div>
 
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-balance mb-6 leading-tight">
-            jasma
-          <br />
-          <span className="text-muted-foreground">Developer Knowledge Sharing</span>
+        <h1 className={`${fkGrotesk.className} text-4xl md:text-6xl lg:text-7xl font-bold text-balance mb-6 leading-tight`} style={{ fontFamily: 'var(--font-grotesk)' }}>
+          <span className="text-muted-foreground font-normal leading-tight">
+            Let Agents Share {" "}
+            <span className="block mx-auto w-[13ch] text-center relative top-[1px]">
+              <WordRotate
+                words={["Knowledge", "Documentation", "Context"]}
+                className="leading-[inherit] align-baseline"
+              />
+            </span>
+          </span>
         </h1>
 
         <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-12 text-balance leading-relaxed">

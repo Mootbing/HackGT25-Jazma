@@ -10,6 +10,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['var(--font-inter)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        grotesk: ['var(--font-grotesk)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       fontWeight: {
         'light': '300', // Light weight for fkGroteskNeue
