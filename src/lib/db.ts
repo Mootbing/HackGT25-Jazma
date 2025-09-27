@@ -1,21 +1,22 @@
-import { Pool } from 'pg';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-let pool: Pool | null = null;
+let supabase: SupabaseClient | null = null;
 
-export function getDbPool(): Pool {
-  if (!pool) throw new Error('DB pool not initialized');
-  return pool;
+export function getSupabase(): SupabaseClient {
+  if (!supabase) throw new Error('Supabase client not initialized');
+  return supabase;
 }
 
-export async function createDbPool(): Promise<Pool> {
-  if (pool) return pool;
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
-    throw new Error('DATABASE_URL is not set');
+export async function createDbPool(): Promise<SupabaseClient> {
+  if (supabase) return supabase;
+  const url = process.env.SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY;
+  if (!url || !anonKey) {
+    throw new Error('SUPABASE_URL or SUPABASE_ANON_KEY is not set');
   }
-  pool = new Pool({ connectionString: databaseUrl, max: 10 });
-  // quick sanity check
-  await pool.query('select 1');
-  return pool;
+  supabase = createClient(url, anonKey, {
+    auth: { persistSession: false }
+  });
+  return supabase;
 }
 

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getDbPool } from '../lib/db.js';
+import { getSupabase } from '../lib/db.js';
 import { computeContentHash, redactSecrets } from '../util/text.js';
 import { embedChunks } from '../util/embeddings.js';
 import { chunkText } from '../util/chunking.js';
@@ -32,7 +32,7 @@ export const storeInputSchema = z.object({
 type StoreArgs = z.infer<typeof storeInputSchema>;
 
 export async function storeToolHandler(args: StoreArgs): Promise<{ id: string; duplicate_of?: string; created: boolean }> {
-  const pool = getDbPool();
+  const supabase = getSupabase();
 
   const body = redactSecrets(args.body ?? '');
   const code = redactSecrets(args.code ?? '');
@@ -44,9 +44,9 @@ export async function storeToolHandler(args: StoreArgs): Promise<{ id: string; d
   const contentHash = computeContentHash(payloadForHash);
 
   // Idempotency on content hash first
-  const dup = await pool.query('select id from entries where content_hash = $1 limit 1', [contentHash]);
-  if (dup.rowCount) {
-    const id = dup.rows[0].id as string;
+  const dup = await supabase.from('entries').select('id').eq('content_hash', contentHash).limit(1).maybeSingle();
+  if (dup.data?.id) {
+    const id = dup.data.id as string;
     return { id, duplicate_of: id, created: false };
   }
 
@@ -56,32 +56,37 @@ export async function storeToolHandler(args: StoreArgs): Promise<{ id: string; d
     project, repo, commit, branch, os, runtime, language, framework
   } = args.metadata ?? {};
 
-  const insertRes = await pool.query(
-    `insert into entries (
-      type, title, body, stack_trace, code, repro_steps, root_cause, resolution,
-      severity, tags, project, repo, commit, branch, os, runtime, language, framework,
-      resolved, content_hash
-    ) values (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20
-    ) returning id`,
-    [
-      args.type, args.title, body || null, stack || null, code || null, repro || null, args.root_cause || null,
-      resolution || null, args.severity || null, args.tags ?? [], project || null, repo || null, commit || null,
-      branch || null, os || null, runtime || null, language || null, framework || null, resolved, contentHash
-    ]
-  );
-
-  const entryId: string = insertRes.rows[0].id;
+  const insertRes = await supabase.rpc('rpc_insert_entry', {
+    p_type: args.type,
+    p_title: args.title,
+    p_body: body || null,
+    p_stack_trace: stack || null,
+    p_code: code || null,
+    p_repro_steps: repro || null,
+    p_root_cause: args.root_cause || null,
+    p_resolution: resolution || null,
+    p_severity: args.severity || null,
+    p_tags: args.tags ?? [],
+    p_project: project || null,
+    p_repo: repo || null,
+    p_commit: commit || null,
+    p_branch: branch || null,
+    p_os: os || null,
+    p_runtime: runtime || null,
+    p_language: language || null,
+    p_framework: framework || null,
+    p_resolved: resolved,
+    p_content_hash: contentHash
+  });
+  if (insertRes.error) throw insertRes.error;
+  const entryId: string = insertRes.data as unknown as string;
 
   // Link related entries if provided
   if (args.related_ids?.length) {
-    const values: unknown[] = [];
-    const tuples = args.related_ids.map((rid, i) => {
-      values.push(entryId, rid, 'relates_to');
-      const base = i * 3;
-      return `($${base + 1}, $${base + 2}, $${base + 3})`;
-    }).join(',');
-    await pool.query(`insert into links (from_entry_id, to_entry_id, relation) values ${tuples} on conflict do nothing`, values);
+    const linkRows = args.related_ids.map((rid) => ({ from_entry_id: entryId, to_entry_id: rid, relation: 'relates_to' }));
+    // Upsert by primary key (from,to,relation)
+    const linkRes = await supabase.from('links').upsert(linkRows, { onConflict: 'from_entry_id,to_entry_id,relation', ignoreDuplicates: true });
+    if (linkRes.error) throw linkRes.error;
   }
 
   // Chunk important fields and embed
@@ -90,17 +95,14 @@ export async function storeToolHandler(args: StoreArgs): Promise<{ id: string; d
     const chunks = chunkText(textToChunk);
     const embeddings = await embedChunks(chunks);
     if (embeddings.length) {
-      const values: unknown[] = [];
-      const rows: string[] = [];
-      embeddings.forEach((emb, idx) => {
-        values.push(entryId, idx, chunks[idx], emb);
-        const base = idx * 4;
-        rows.push(`($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}::vector)`);
+      const chunkIds = embeddings.map((_, i) => i);
+      const rpc = await supabase.rpc('rpc_insert_embeddings', {
+        p_entry_id: entryId,
+        p_chunk_ids: chunkIds,
+        p_chunk_texts: chunks,
+        p_embeddings: embeddings
       });
-      await pool.query(
-        `insert into embeddings (entry_id, chunk_id, chunk_text, embedding) values ${rows.join(',')}`,
-        values
-      );
+      if (rpc.error) throw rpc.error;
     }
   }
 
