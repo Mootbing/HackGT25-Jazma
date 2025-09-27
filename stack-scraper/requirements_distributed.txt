@@ -1,0 +1,43 @@
+# Core scraping dependencies
+selenium>=4.15.0
+webdriver-manager>=4.0.0
+
+# Distributed system dependencies
+redis>=5.0.0
+pymongo>=4.5.0
+celery>=5.3.0
+
+# Database and storage
+psycopg2-binary>=2.9.0
+sqlalchemy>=2.0.0
+
+# Async and threading
+aioredis>=2.0.0
+asyncio
+concurrent.futures
+
+# Monitoring and logging
+prometheus-client>=0.17.0
+structlog>=23.0.0
+
+# AWS integration
+boto3>=1.28.0
+botocore>=1.31.0
+
+# Web server for health checks
+flask>=2.3.0
+gunicorn>=21.0.0
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Configuration management
+python-decouple>=3.8
+pydantic>=2.0.0
+
+# System monitoring
+psutil>=5.9.0
+
+# HTTP requests
+requests>=2.31.0

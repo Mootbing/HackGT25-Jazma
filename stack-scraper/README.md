@@ -1,6 +1,6 @@
-# Stack Overflow Web Scraper
+# Distributed Stack Overflow Scraper
 
-A simple web scraper built with Selenium that opens a Chrome browser and navigates to Stack Overflow.
+A highly scalable, multithreaded web scraper designed to harvest 100,000+ Stack Overflow questions across multiple EC2 instances without duplicates.
 
 ## Features
 

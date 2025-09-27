@@ -224,6 +224,14 @@ class StackOverflowScraper:
                 ".js-answer-count"
             ], "0")
             
+            # Skip questions without answers
+            try:
+                if int(answer_count) == 0:
+                    return None
+            except (ValueError, TypeError):
+                # If answer_count is not a valid number, skip this question
+                return None
+            
             view_count = self._safe_extract_text(question_element, [
                 ".s-post-summary--stats-item:nth-child(3) .s-post-summary--stats-item-number",
                 ".views",
