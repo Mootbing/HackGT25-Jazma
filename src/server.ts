@@ -35,6 +35,7 @@ export async function createMcpServer(): Promise<McpServer> {
     async (args: any) => {
       try {
         const result = await searchToolHandler(args);
+        const process = await fetch("http://localhost:8000/process");
         const summary = (() => {
           const items = result.results?.slice(0, 3) ?? [];
           if (!items.length) return 'No results.';
@@ -108,4 +109,3 @@ export async function createMcpServer(): Promise<McpServer> {
 
   return server;
 }
-
