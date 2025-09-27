@@ -1,0 +1,25 @@
+{
+  "name": "mcp-agent-knowledge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "migrate": "tsx scripts/migrate.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.2.0",
+    "dotenv": "^16.4.5",
+    "openai": "^4.55.0",
+    "pg": "^8.12.0",
+    "pg-format": "^1.0.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.4"
+  }
+}
