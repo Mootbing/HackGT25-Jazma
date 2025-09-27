@@ -10,6 +10,7 @@ This module provides a clean interface for:
 from .models import BugFix, QueryRequest, QueryResponse
 from .database_client import BugfixDatabase
 from .embedding_service import EmbeddingService
+from .storage_client import StorageClient
 
 __version__ = "1.0.0"
 __author__ = "HackGT25 Team"
@@ -18,6 +19,7 @@ __all__ = [
     "BugFix",
     "QueryRequest", 
     "QueryResponse",
-    "BugfixDatabase",
-    "EmbeddingService"
+    "BugfixDatabase",      # Main client with all three components
+    "EmbeddingService",    # Vector DB (pgvector) component
+    "StorageClient"        # Blob Storage component
 ]

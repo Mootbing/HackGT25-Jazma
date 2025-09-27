@@ -1,15 +1,14 @@
 # 🐛 Bugfix Database
 
-A simple database client for storing and querying bug fixes with semantic search capabilities. When developers fix bugs, that knowledge is captured and can be searched using natural language queries.
+A simple database system with three core components for storing and querying bug fixes:
 
 ## 📚 Overview
 
-This database client provides semantic search capabilities for bug fixes, allowing development teams to:
+This system provides three essential components for bugfix knowledge management:
 
-- **Capture Knowledge**: Store bug fix information from commits with embeddings
-- **Semantic Search**: Find relevant fixes using natural language queries
-- **Rich Metadata**: Store file locations, commit info, and related issues
-- **Persistent Storage**: Store metadata in Supabase Postgres with pgvector for embeddings
+- **Relational DB (Supabase Postgres)** → canonical bugfix metadata
+- **Vector DB (pgvector)** → semantic similarity search  
+- **Blob Storage (Supabase Storage)** → patches, logs, large artifacts
 
 ## 🏗 Architecture
 
@@ -17,9 +16,9 @@ This database client provides semantic search capabilities for bug fixes, allowi
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   Your App      │    │   Bugfix DB      │    │   Supabase      │
 │                 │    │                  │    │                 │
-│ • Git Hooks     │◄──►│ • add_bugfix     │◄──►│ • Postgres DB   │
-│ • CI/CD         │    │ • search_bugfix  │    │ • pgvector      │
-│ • Dev Tools     │    │ • query_by_file  │    │ • Storage       │
+│ • Git Hooks     │◄──►│ • Relational DB  │◄──►│ • Postgres DB   │
+│ • CI/CD         │    │ • Vector DB      │    │ • pgvector      │
+│ • Dev Tools     │    │ • Blob Storage   │    │ • Storage       │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
 ```
 
@@ -38,7 +37,10 @@ class BugFix(BaseModel):
     created_at: datetime
     resolved: bool = True
     related_issue: Optional[str] = None
-    external_ref: Optional[HttpUrl] = None  # link to artifact/blob
+    # Supabase Storage references
+    patch_blob_url: Optional[str] = None    # URL to patch file
+    log_blob_url: Optional[str] = None      # URL to log file
+    artifact_blob_url: Optional[str] = None # URL to artifacts
 ```
 
 ### QueryRequest
@@ -77,9 +79,9 @@ cp config.env.example .env
 -- Run the schema from config/supabase_schema.sql
 ```
 
-4. **Run the example:**
+4. **Run the core components example:**
 ```bash
-python examples/basic_usage.py
+python examples/core_components.py
 ```
 
 ## 🔧 Configuration
@@ -181,16 +183,10 @@ Run the test suite:
 pytest tests/
 ```
 
-Run the basic usage example:
+Run the core components example:
 
 ```bash
-python examples/basic_usage.py
-```
-
-Run the git integration example:
-
-```bash
-python examples/git_integration.py
+python examples/core_components.py
 ```
 
 ## 🏗 Development
@@ -200,12 +196,13 @@ python examples/git_integration.py
 ```
 src/bugfix_database/
 ├── models.py              # Pydantic data models
-├── database_client.py     # Main database client
-├── embedding_service.py   # OpenAI embedding service
+├── database_client.py     # Main client (all 3 components)
+├── embedding_service.py   # Vector DB (pgvector) component
+├── storage_client.py      # Blob Storage component
 └── __init__.py           # Package exports
 
 config/                   # Database schemas and config
-examples/                 # Usage examples
+examples/                 # Core components example
 tests/                    # Test suite
 scripts/                  # Helper scripts
 ```
@@ -218,10 +215,10 @@ scripts/                  # Helper scripts
 
 ## 🔍 Key Features
 
-- **Semantic Search**: Uses OpenAI embeddings for intelligent bug fix discovery
-- **Vector Storage**: pgvector for efficient similarity search
-- **Simple API**: Clean Python interface for storing and querying bug fixes
-- **Git Integration**: Helper functions for parsing git commits and extracting bug fixes
+- **Relational DB**: Supabase Postgres for canonical bugfix metadata
+- **Vector DB**: pgvector for semantic similarity search using OpenAI embeddings
+- **Blob Storage**: Supabase Storage for patches, logs, and large artifacts
+- **Simple API**: Clean Python interface for all three components
 - **Rich Metadata**: Store file locations, commit info, and related issues
 - **Scalable Architecture**: Built on Supabase for enterprise scale
 

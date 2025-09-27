@@ -1,3 +1,3 @@
-from .schemas import BugFix, ContextUpdate, QueryRequest, QueryResponse
+from .schemas import BugFix, QueryRequest, QueryResponse
 
-__all__ = ["BugFix", "ContextUpdate", "QueryRequest", "QueryResponse"]
+__all__ = ["BugFix", "QueryRequest", "QueryResponse"]

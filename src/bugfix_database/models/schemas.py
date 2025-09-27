@@ -1,10 +1,10 @@
-from typing import List, Optional
-from pydantic import BaseModel, HttpUrl
+from typing import Optional
+from pydantic import BaseModel
 from datetime import datetime
 
 
 class BugFix(BaseModel):
-    """Represents a bug fix with metadata and location information."""
+    """Represents a bug fix with metadata and storage references."""
     id: str                       # unique ID (commit+file+line)
     file: str                     # file path
     line_start: Optional[int] = None
@@ -15,14 +15,10 @@ class BugFix(BaseModel):
     created_at: datetime
     resolved: bool = True
     related_issue: Optional[str] = None
-    external_ref: Optional[HttpUrl] = None  # link to artifact/blob
-
-
-class ContextUpdate(BaseModel):
-    """Batch update of bug fixes from a commit."""
-    commit: str
-    branch: str
-    fixes: List[BugFix]
+    # Supabase Storage references
+    patch_blob_url: Optional[str] = None    # URL to patch file in Supabase Storage
+    log_blob_url: Optional[str] = None      # URL to log file in Supabase Storage
+    artifact_blob_url: Optional[str] = None # URL to other artifacts in Supabase Storage
 
 
 class QueryRequest(BaseModel):
@@ -35,5 +31,5 @@ class QueryRequest(BaseModel):
 class QueryResponse(BaseModel):
     """Response containing query results."""
     query: str
-    results: List[BugFix]
+    results: list[BugFix]
     retrieved_at: datetime

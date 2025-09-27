@@ -1,7 +1,7 @@
 -- Enable pgvector extension for semantic search
 CREATE EXTENSION IF NOT EXISTS vector;
 
--- Bugfixes table with vector embeddings
+-- Bugfixes table with vector embeddings and storage references
 CREATE TABLE bugfixes (
     id TEXT PRIMARY KEY,
     file TEXT NOT NULL,
@@ -13,8 +13,11 @@ CREATE TABLE bugfixes (
     created_at TIMESTAMP DEFAULT NOW(),
     resolved BOOLEAN DEFAULT TRUE,
     related_issue TEXT,
-    external_ref TEXT,
-    embedding VECTOR(1536)  -- OpenAI text-embedding-3-small dimensions
+    -- Supabase Storage references for patches, logs, and artifacts
+    patch_blob_url TEXT,        -- URL to patch file in Supabase Storage
+    log_blob_url TEXT,          -- URL to log file in Supabase Storage  
+    artifact_blob_url TEXT,     -- URL to other artifacts in Supabase Storage
+    embedding VECTOR(1536)      -- OpenAI text-embedding-3-small dimensions
 );
 
 -- Index for vector similarity search
@@ -28,6 +31,11 @@ CREATE INDEX bugfix_file_idx ON bugfixes (file);
 CREATE INDEX bugfix_commit_idx ON bugfixes (commit_hash);
 CREATE INDEX bugfix_author_idx ON bugfixes (author);
 CREATE INDEX bugfix_created_idx ON bugfixes (created_at);
+
+-- Storage indexes for blob references
+CREATE INDEX bugfix_patch_url_idx ON bugfixes (patch_blob_url);
+CREATE INDEX bugfix_log_url_idx ON bugfixes (log_blob_url);
+CREATE INDEX bugfix_artifact_url_idx ON bugfixes (artifact_blob_url);
 
 -- Function for semantic similarity search
 CREATE OR REPLACE FUNCTION match_bugfixes(

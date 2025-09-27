@@ -12,6 +12,7 @@ from supabase import create_client, Client
 
 from .models import BugFix, QueryRequest, QueryResponse
 from .embedding_service import EmbeddingService
+from .storage_client import StorageClient
 
 
 class BugfixDatabase:
@@ -35,9 +36,10 @@ class BugfixDatabase:
         if not openai_key:
             raise ValueError("OpenAI API key is required")
         
-        # Initialize services
-        self.client: Client = create_client(self.supabase_url, self.supabase_key)
-        self.embedding_service = EmbeddingService(openai_key)
+        # Initialize the three core components
+        self.client: Client = create_client(self.supabase_url, self.supabase_key)  # Relational DB
+        self.embedding_service = EmbeddingService(openai_key)  # Vector DB (pgvector)
+        self.storage_client = StorageClient(self.supabase_url, self.supabase_key)  # Blob Storage
     
     def add_bugfix(self, bugfix: BugFix) -> Dict[str, Any]:
         """Add a single bugfix to the database.
@@ -64,7 +66,10 @@ class BugfixDatabase:
                 "created_at": bugfix.created_at.isoformat(),
                 "resolved": bugfix.resolved,
                 "related_issue": bugfix.related_issue,
-                "external_ref": str(bugfix.external_ref) if bugfix.external_ref else None,
+                # Supabase Storage references
+                "patch_blob_url": bugfix.patch_blob_url,
+                "log_blob_url": bugfix.log_blob_url,
+                "artifact_blob_url": bugfix.artifact_blob_url,
                 "embedding": embedding
             }
             
@@ -139,7 +144,10 @@ class BugfixDatabase:
                         created_at=created_at,
                         resolved=item.get('resolved', True),
                         related_issue=item.get('related_issue'),
-                        external_ref=item.get('external_ref')
+                        # Supabase Storage references
+                        patch_blob_url=item.get('patch_blob_url'),
+                        log_blob_url=item.get('log_blob_url'),
+                        artifact_blob_url=item.get('artifact_blob_url')
                     )
                     bugfixes.append(bugfix)
                     
@@ -237,7 +245,10 @@ class BugfixDatabase:
                         created_at=created_at,
                         resolved=item.get('resolved', True),
                         related_issue=item.get('related_issue'),
-                        external_ref=item.get('external_ref')
+                        # Supabase Storage references
+                        patch_blob_url=item.get('patch_blob_url'),
+                        log_blob_url=item.get('log_blob_url'),
+                        artifact_blob_url=item.get('artifact_blob_url')
                     )
                     bugfixes.append(bugfix)
                     
@@ -284,7 +295,10 @@ class BugfixDatabase:
                         created_at=created_at,
                         resolved=item.get('resolved', True),
                         related_issue=item.get('related_issue'),
-                        external_ref=item.get('external_ref')
+                        # Supabase Storage references
+                        patch_blob_url=item.get('patch_blob_url'),
+                        log_blob_url=item.get('log_blob_url'),
+                        artifact_blob_url=item.get('artifact_blob_url')
                     )
                     bugfixes.append(bugfix)
                     
