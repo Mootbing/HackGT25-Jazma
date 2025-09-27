@@ -63,7 +63,6 @@ async def apply_changes(path: str, accepted: bool):
     new_commit_hash = commit_applied_fix(path, tmp_branch)
 
     if accepted:
-        # Generate store payload, merge, etc.
         diff_text = git_diff(path, pre_commit_hash, new_commit_hash, files_to_watch)
         output = generate_store_payload(
             "bug",
@@ -75,7 +74,6 @@ async def apply_changes(path: str, accepted: bool):
         )
         merge_temp_branch(path, tmp_branch, curr_branch)
 
-        # Optionally call your Node/Express store API
         subprocess.run(
             ["node", "store_runner.js", json.dumps(output)],
             capture_output=True,
