@@ -40,7 +40,6 @@ export async function createMcpServer(): Promise<McpServer> {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             payload: args,
-            path: process.cwd()
           })
         });
         const summary = (() => {

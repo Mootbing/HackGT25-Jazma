@@ -7,13 +7,16 @@ from repo_utils import *
 from pathlib import Path
 from llm_util import generate_store_payload
 import subprocess, json
+import os
 
 
 app = FastAPI()
 watchers = {}
 
 @app.post("/process")
-async def process_data(payload, path):
+async def process_data(payload):
+    path = os.getcwd()
+
     curr_branch = get_current_branch(path)
     pre_commit_hash = commit_pre_fix_state(path, curr_branch)
     tmp_branch = create_temp_branch(path, pre_commit_hash)
@@ -35,7 +38,8 @@ async def process_data(payload, path):
 first_iter = True
 
 @app.get("/watch_status")
-async def watch_status(path: str):
+async def watch_status():
+    path = os.getcwd()
     info = watchers.get(path)
     if not info:
         return {"error": "No watcher for this path"}
@@ -56,7 +60,8 @@ async def watch_status(path: str):
     return {"changed": changed}
 
 @app.post("/apply_changes")
-async def apply_changes(path: str, accepted: bool):
+async def apply_changes(accepted: bool):
+    path = os.getcwd()
     info = watchers.get(path)
     if not info:
         return {"error": "No watcher for this path"}

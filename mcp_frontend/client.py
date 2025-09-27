@@ -36,7 +36,7 @@ def awaiting_mcp():
 
         while True:
             try:
-                res = requests.get(f"{backend_url}/watch_status", params={"path": "/"})
+                res = requests.get(f"{backend_url}/watch_status")
                 data = res.json()
                 if data.get("message"):
                     console.print(f"[green]{data['message']}[/green]")
@@ -55,8 +55,16 @@ def ask_bug_fix():
 
     if answer is "y":
         console.print("[bold cyan]Great! Proceeding...[/]")
+        res = requests.post(
+            f"{backend_url}/apply_changes",
+            json={"accepted": answer}
+        )
     elif answer is "n":
         console.print("[bold red]Rollback initiated.[/]")
+        res = requests.post(
+            f"{backend_url}/apply_changes",
+            json={"accepted": answer}
+        )
 
     console.print("[bold green]Detected MCP request![/bold green]")
 
@@ -70,7 +78,7 @@ def awaiting_files():
 
         while True:
             try:
-                res = requests.get(f"{backend_url}/watch_status", params={"path": "/"})
+                res = requests.get(f"{backend_url}/watch_status")
                 data = res.json()
                 if data.get("changed"):
                     break
