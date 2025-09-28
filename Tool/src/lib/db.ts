@@ -1,4 +1,5 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import pkg from '@supabase/supabase-js';
+const { createClient, SupabaseClient } = pkg;
 
 let supabase: SupabaseClient | null = null;
 

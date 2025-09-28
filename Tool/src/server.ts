@@ -34,7 +34,10 @@ export async function createMcpServer(): Promise<McpServer> {
     },
     async (args: any) => {
       try {
-        const result = await searchToolHandler(args);
+        const input = args?.params ?? args;
+
+        const result = await searchToolHandler(input);
+
         await fetch("http://localhost:8000/process", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -94,6 +97,8 @@ export async function createMcpServer(): Promise<McpServer> {
     },
     async (args: any) => {
       try {
+        const input = args?.params ?? args;
+
         const result = await storeToolHandler(args);
         return { content: [{ type: 'json', json: result }] } as any;
       } catch (err: any) {

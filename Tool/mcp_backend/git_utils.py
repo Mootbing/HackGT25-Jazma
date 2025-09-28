@@ -13,9 +13,19 @@ def get_current_branch(repo_path: str) -> str:
 def commit_pre_fix_state(repo_path, branch):
     subprocess.run(["git", "-C", repo_path, "checkout", branch], check=True)
     subprocess.run(["git", "-C", repo_path, "add", "."], check=True)
-    subprocess.run(["git", "-C", repo_path, "commit", "-m", "MCP Pre-fix snapshot"], check=True)
 
-    commit_hash = subprocess.run(["git", "-C", repo_path, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    status = subprocess.run(
+        ["git", "-C", repo_path, "diff", "--cached", "--quiet"]
+    )
+
+    if status.returncode != 0:
+        subprocess.run(
+            ["git", "-C", repo_path, "commit", "-m", "MCP Pre-fix snapshot"], check=True
+        )
+
+    commit_hash = subprocess.run(
+        ["git", "-C", repo_path, "rev-parse", "HEAD"], capture_output=True, text=True, check=True
+    ).stdout.strip()
     return commit_hash
 
 def create_temp_branch(repo_path, base_commit):
@@ -38,12 +48,13 @@ def commit_applied_fix(repo_path, branch):
 
 def merge_temp_branch(repo_path, temp_branch, target_branch):
     subprocess.run(["git", "-C", repo_path, "checkout", target_branch], check=True)
-    subprocess.run(["git", "-C", repo_path, "merge", "--no-ff", temp_branch], check=True)
+    subprocess.run(["git", "-C", repo_path, "merge", "--no-ff", "--no-edit", temp_branch], check=True)
     subprocess.run(["git", "-C", repo_path, "branch", "-d", temp_branch], check=True)
 
-def rollback_to_commit(repo_path, target_branch, commit_hash):
+def rollback_to_commit(repo_path, target_branch, temp_branch, commit_hash):
     subprocess.run(["git", "-C", repo_path, "checkout", target_branch], check=True)
     subprocess.run(["git", "-C", repo_path, "reset", "--hard", commit_hash], check=True)
+    subprocess.run(["git", "-C", repo_path, "branch", "-D", temp_branch], check=True)
 
 def git_diff(repo_path: str, from_commit: str, to_commit: str, files: list[str] = None):
     cmd = ["git", "-C", repo_path, "diff", from_commit, to_commit]
@@ -54,3 +65,12 @@ def git_diff(repo_path: str, from_commit: str, to_commit: str, files: list[str] 
         raise RuntimeError(f"Git diff failed: {result.stderr}")
     return result.stdout
 
+def get_all_repo_files(repo_path):
+    result = subprocess.run(
+        ["git", "-C", str(repo_path), "ls-files"],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    files = result.stdout.splitlines()
+    return files

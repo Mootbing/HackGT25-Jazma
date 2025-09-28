@@ -4,32 +4,22 @@ import json
 
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-def generate_store_payload(title, stack_trace, git_diff, repo, branch, language):
+def generate_store_payload(type, git_diff, repo, branch):
     prompt = f"""
         You are an AI that converts raw bug-fix data into a structured payload for a database.
         Format the output as JSON matching the following schema:
         - type: "solution" | "bug" | "doc"
         - title: string
         - body: string
-        - stack_trace: string
         - code: string (git diff of applied fix)
-        - repro_steps: string
-        - resolution: string
-        - metadata: object with keys repo, branch, language
 
         Here is the input:
-
-        Title: {title}
-        Stack trace:
-        {stack_trace}
+        type: {type}
 
         Git diff:
         {git_diff}
 
-        Repo: {repo}, Branch: {branch}, Language: {language}
-
-        User notes (optional):
-        {user_notes if user_notes else "None"}
+        Repo: {repo}, Branch: {branch}
 
         Return ONLY the JSON object.
         """
@@ -41,6 +31,9 @@ def generate_store_payload(title, stack_trace, git_diff, repo, branch, language)
     )
 
     content = response.choices[0].message.content.strip()
+    if content.startswith("```") and content.endswith("```"):
+        content = "\n".join(content.split("\n")[1:-1]).strip()
+
     try:
         payload = json.loads(content)
     except json.JSONDecodeError:
