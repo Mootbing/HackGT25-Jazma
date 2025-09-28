@@ -8,7 +8,7 @@ import { Check, Copy, ExternalLink } from "lucide-react"
 export function InstallCursor() {
   const configJson = `{
   "mcpServers": {
-    "jazma": {
+    "jasma": {
       "url": "https://jasma.workers.dev/mcp"
     }
   }
@@ -47,7 +47,7 @@ export function InstallCursor() {
             Install in Cursor
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-balance">
-            Add the Jazma MCP server to Cursor in seconds. No local setup required.
+            Add the Jasma MCP server to Cursor in seconds. No local setup required.
           </p>
         </div>
 
@@ -59,7 +59,7 @@ export function InstallCursor() {
               <div className="w-3 h-3 rounded-full bg-red-500/90"></div>
               <div className="w-3 h-3 rounded-full bg-yellow-400/90"></div>
               <div className="w-3 h-3 rounded-full bg-green-500/90"></div>
-              <span className="ml-3 text-xs text-white/60">Jazma MCP Installer</span>
+              <span className="ml-3 text-xs text-white/60">Jasma MCP Installer</span>
             </div>
 
             <div className="p-6 md:p-8">
@@ -71,7 +71,7 @@ export function InstallCursor() {
                     <li>Open Cursor → Settings → MCP</li>
                     <li>Click <span className="font-medium">Add new global MCP server</span></li>
                     <li>Paste the config JSON shown → Save</li>
-                    <li>Click the refresh icon next to <span className="font-mono">jazma</span></li>
+                    <li>Click the refresh icon next to <span className="font-mono">jasma</span></li>
                   </ol>
 
                   <a

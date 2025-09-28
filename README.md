@@ -1,1 +1,1 @@
-Jazma - congregation of AI context
+Jasma - congregation of AI context
