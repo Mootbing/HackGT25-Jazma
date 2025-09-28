@@ -44,7 +44,6 @@ export async function createMcpServer(): Promise<McpServer> {
           return `Top findings:\n${lines.join('\n')}`;
         })();
         return { content: [
-          { type: 'json', json: result },
           { type: 'text', text: summary }
         ] } as any;
       } catch (err: any) {
@@ -92,7 +91,8 @@ export async function createMcpServer(): Promise<McpServer> {
         const input = args;
 
         const result = await storeToolHandler(input);
-        return { content: [{ type: 'json', json: result }] } as any;
+        const text = `Stored item ${result.id} ${result.created ? '(created)' : '(duplicate)'}${result.duplicate_of ? ` of ${result.duplicate_of}` : ''}`;
+        return { content: [{ type: 'text', text }] } as any;
       } catch (err: any) {
         const message = err?.message || 'store failed';
         const details = err?.error || err?.data || err;
