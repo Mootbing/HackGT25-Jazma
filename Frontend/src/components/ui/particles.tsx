@@ -75,6 +75,8 @@ type Circle = {
   dx: number
   dy: number
   magnetism: number
+  scrollVelocityX: number
+  scrollVelocityY: number
 }
 
 export const Particles: React.FC<ParticlesProps> = ({
@@ -99,48 +101,8 @@ export const Particles: React.FC<ParticlesProps> = ({
   const dpr = typeof window !== "undefined" ? window.devicePixelRatio : 1
   const rafID = useRef<number | null>(null)
   const resizeTimeout = useRef<NodeJS.Timeout | null>(null)
-
-  useEffect(() => {
-    if (canvasRef.current) {
-      context.current = canvasRef.current.getContext("2d")
-    }
-    initCanvas()
-    animate()
-
-    const handleResize = () => {
-      if (resizeTimeout.current) {
-        clearTimeout(resizeTimeout.current)
-      }
-      resizeTimeout.current = setTimeout(() => {
-        initCanvas()
-      }, 200)
-    }
-
-    window.addEventListener("resize", handleResize)
-
-    return () => {
-      if (rafID.current != null) {
-        window.cancelAnimationFrame(rafID.current)
-      }
-      if (resizeTimeout.current) {
-        clearTimeout(resizeTimeout.current)
-      }
-      window.removeEventListener("resize", handleResize)
-    }
-  }, [color])
-
-  useEffect(() => {
-    onMouseMove()
-  }, [mousePosition.x, mousePosition.y])
-
-  useEffect(() => {
-    initCanvas()
-  }, [refresh])
-
-  const initCanvas = () => {
-    resizeCanvas()
-    drawParticles()
-  }
+  const scrollY = useRef<number>(0)
+  const lastScrollY = useRef<number>(0)
 
   const onMouseMove = () => {
     if (canvasRef.current) {
@@ -176,6 +138,128 @@ export const Particles: React.FC<ParticlesProps> = ({
     }
   }
 
+  const drawParticles = () => {
+    clearContext()
+    const particleCount = quantity
+    for (let i = 0; i < particleCount; i++) {
+      const circle = circleParams()
+      drawCircle(circle)
+    }
+  }
+
+  const initCanvas = () => {
+    resizeCanvas()
+    drawParticles()
+  }
+
+  const animate = () => {
+    clearContext()
+    
+    // Calculate scroll delta for this frame
+    const scrollDelta = scrollY.current - lastScrollY.current
+    lastScrollY.current = scrollY.current
+    
+    circles.current.forEach((circle: Circle, i: number) => {
+      // Handle the alpha value
+      const edge = [
+        circle.x + circle.translateX - circle.size, // distance from left edge
+        canvasSize.current.w - circle.x - circle.translateX - circle.size, // distance from right edge
+        circle.y + circle.translateY - circle.size, // distance from top edge
+        canvasSize.current.h - circle.y - circle.translateY - circle.size, // distance from bottom edge
+      ]
+      const closestEdge = edge.reduce((a, b) => Math.min(a, b))
+      const remapClosestEdge = parseFloat(
+        remapValue(closestEdge, 0, 20, 0, 1).toFixed(2)
+      )
+      if (remapClosestEdge > 1) {
+        circle.alpha += 0.02
+        if (circle.alpha > circle.targetAlpha) {
+          circle.alpha = circle.targetAlpha
+        }
+      } else {
+        circle.alpha = circle.targetAlpha * remapClosestEdge
+      }
+      
+      // Apply base movement
+      circle.x += circle.dx + vx
+      circle.y += circle.dy + vy
+      
+      // Apply scroll-based movement with individual particle velocities
+      circle.x += scrollDelta * circle.scrollVelocityX
+      circle.y += scrollDelta * circle.scrollVelocityY
+      
+      circle.translateX +=
+        (mouse.current.x / (staticity / circle.magnetism) - circle.translateX) /
+        ease
+      circle.translateY +=
+        (mouse.current.y / (staticity / circle.magnetism) - circle.translateY) /
+        ease
+
+      drawCircle(circle, true)
+
+      // circle gets out of the canvas
+      if (
+        circle.x < -circle.size ||
+        circle.x > canvasSize.current.w + circle.size ||
+        circle.y < -circle.size ||
+        circle.y > canvasSize.current.h + circle.size
+      ) {
+        // remove the circle from the array
+        circles.current.splice(i, 1)
+        // create a new circle
+        const newCircle = circleParams()
+        drawCircle(newCircle)
+      }
+    })
+    rafID.current = window.requestAnimationFrame(animate)
+  }
+
+  useEffect(() => {
+    if (canvasRef.current) {
+      context.current = canvasRef.current.getContext("2d")
+    }
+    initCanvas()
+    animate()
+
+    const handleResize = () => {
+      if (resizeTimeout.current) {
+        clearTimeout(resizeTimeout.current)
+      }
+      resizeTimeout.current = setTimeout(() => {
+        initCanvas()
+      }, 200)
+    }
+
+    const handleScroll = () => {
+      scrollY.current = window.scrollY
+    }
+
+    window.addEventListener("resize", handleResize)
+    window.addEventListener("scroll", handleScroll)
+
+    return () => {
+      if (rafID.current != null) {
+        window.cancelAnimationFrame(rafID.current)
+      }
+      if (resizeTimeout.current) {
+        clearTimeout(resizeTimeout.current)
+      }
+      window.removeEventListener("resize", handleResize)
+      window.removeEventListener("scroll", handleScroll)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [color])
+
+  useEffect(() => {
+    onMouseMove()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mousePosition.x, mousePosition.y])
+
+  useEffect(() => {
+    initCanvas()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refresh])
+
   const circleParams = (): Circle => {
     const x = Math.floor(Math.random() * canvasSize.current.w)
     const y = Math.floor(Math.random() * canvasSize.current.h)
@@ -187,6 +271,9 @@ export const Particles: React.FC<ParticlesProps> = ({
     const dx = (Math.random() - 0.5) * 0.1
     const dy = (Math.random() - 0.5) * 0.1
     const magnetism = 0.1 + Math.random() * 4
+    // Random scroll velocity multipliers for each particle
+    const scrollVelocityX = (Math.random() - 0.5) * 0.3 // -0.15 to 0.15
+    const scrollVelocityY = (Math.random() - 0.5) * 0.5 // -0.25 to 0.25
     return {
       x,
       y,
@@ -198,6 +285,8 @@ export const Particles: React.FC<ParticlesProps> = ({
       dx,
       dy,
       magnetism,
+      scrollVelocityX,
+      scrollVelocityY,
     }
   }
 
@@ -230,15 +319,6 @@ export const Particles: React.FC<ParticlesProps> = ({
     }
   }
 
-  const drawParticles = () => {
-    clearContext()
-    const particleCount = quantity
-    for (let i = 0; i < particleCount; i++) {
-      const circle = circleParams()
-      drawCircle(circle)
-    }
-  }
-
   const remapValue = (
     value: number,
     start1: number,
@@ -249,56 +329,6 @@ export const Particles: React.FC<ParticlesProps> = ({
     const remapped =
       ((value - start1) * (end2 - start2)) / (end1 - start1) + start2
     return remapped > 0 ? remapped : 0
-  }
-
-  const animate = () => {
-    clearContext()
-    circles.current.forEach((circle: Circle, i: number) => {
-      // Handle the alpha value
-      const edge = [
-        circle.x + circle.translateX - circle.size, // distance from left edge
-        canvasSize.current.w - circle.x - circle.translateX - circle.size, // distance from right edge
-        circle.y + circle.translateY - circle.size, // distance from top edge
-        canvasSize.current.h - circle.y - circle.translateY - circle.size, // distance from bottom edge
-      ]
-      const closestEdge = edge.reduce((a, b) => Math.min(a, b))
-      const remapClosestEdge = parseFloat(
-        remapValue(closestEdge, 0, 20, 0, 1).toFixed(2)
-      )
-      if (remapClosestEdge > 1) {
-        circle.alpha += 0.02
-        if (circle.alpha > circle.targetAlpha) {
-          circle.alpha = circle.targetAlpha
-        }
-      } else {
-        circle.alpha = circle.targetAlpha * remapClosestEdge
-      }
-      circle.x += circle.dx + vx
-      circle.y += circle.dy + vy
-      circle.translateX +=
-        (mouse.current.x / (staticity / circle.magnetism) - circle.translateX) /
-        ease
-      circle.translateY +=
-        (mouse.current.y / (staticity / circle.magnetism) - circle.translateY) /
-        ease
-
-      drawCircle(circle, true)
-
-      // circle gets out of the canvas
-      if (
-        circle.x < -circle.size ||
-        circle.x > canvasSize.current.w + circle.size ||
-        circle.y < -circle.size ||
-        circle.y > canvasSize.current.h + circle.size
-      ) {
-        // remove the circle from the array
-        circles.current.splice(i, 1)
-        // create a new circle
-        const newCircle = circleParams()
-        drawCircle(newCircle)
-      }
-    })
-    rafID.current = window.requestAnimationFrame(animate)
   }
 
   return (
