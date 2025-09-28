@@ -37,6 +37,19 @@ def main_loading_screen():
     return answer
 
 def awaiting_mcp():
+    console.print("[cyan]Creating temporary branch via MCP...[/cyan]")
+
+    try:
+        res = requests.post(f"{backend_url}/process", json={"type": "bug"})
+        if res.status_code == 200:
+            console.print("[green]Temporary branch request sent successfully![/green]")
+        else:
+            console.print(f"[red]Failed to initiate MCP process (status {res.status_code})[/red]")
+            return
+    except requests.RequestException as e:
+        console.print(f"[red]Error connecting to backend: {e}[/red]")
+        return
+
     with Progress(
         SpinnerColumn(),
         TextColumn("[bold magenta]Waiting for MCP request from Cursor..."),
@@ -63,20 +76,18 @@ def ask_bug_fix():
         default="y"
     )
 
-    if answer is "y":
-        console.print("[bold cyan]Great! Proceeding...[/]")
+    if answer == "y":
+        console.print("[bold cyan]Great! Applying context to vector database...[/]")
         res = requests.post(
             f"{backend_url}/apply_changes",
-            json={"accepted": answer}
+            json={"accepted": True}
         )
-    elif answer is "n":
+    elif answer == "n":
         console.print("[bold red]Rollback initiated.[/]")
         res = requests.post(
             f"{backend_url}/apply_changes",
-            json={"accepted": answer}
+            json={"accepted": False}
         )
-
-    console.print("[bold green]Detected MCP request![/bold green]")
 
 def awaiting_files():
     with Progress(
@@ -110,11 +121,9 @@ def main():
         first_answer = Prompt.ask("Type [bold green]begin[/] to start MCP", default="begin")
     else:
         awaiting_mcp()
-    ask_bug_fix()
     awaiting_files()
-
+    ask_bug_fix()
 
 
 if __name__ == "__main__":
     main()
-    console.print("Starting watcher...", style="bold green")

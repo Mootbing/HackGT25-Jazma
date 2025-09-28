@@ -1,21 +1,25 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI, Body
 from git_utils import *
 from repo_utils import *
 from pathlib import Path
 from llm_util import generate_store_payload
 import subprocess, json
+from pydantic import BaseModel
 import os
 
 
 app = FastAPI()
 watchers = {}
 
+class ApplyChangesPayload(BaseModel):
+    accepted: bool
+
 @app.post("/process")
-async def process_data(payload):
-    path = str(Path.home()) + "/Desktop" + "/Projects" + "/testProject2" + "/testProject"
+async def process_data(payload: dict = Body(...)):
+    path = str(Path.home()) + "/Desktop" + "/Projects" + "/testProject"
 
     curr_branch = get_current_branch(path)
     pre_commit_hash = commit_pre_fix_state(path, curr_branch)
@@ -40,7 +44,7 @@ first_iter = True
 @app.get("/watch_status")
 async def watch_status():
     global first_iter
-    path = str(Path.home()) + "/Desktop" + "/Projects" + "/testProject2" + "/testProject"
+    path = str(Path.home()) + "/Desktop" + "/Projects" + "/testProject"
     info = watchers.get(path)
     if not info:
         return {"error": "No watcher for this path"}
@@ -61,8 +65,11 @@ async def watch_status():
     return {"changed": changed}
 
 @app.post("/apply_changes")
-async def apply_changes(accepted: bool):
-    path = str(Path.home()) + "/Desktop" + "/Projects" + "/testProject2" + "/testProject"
+async def apply_changes(payload: ApplyChangesPayload):
+    accepted = payload.accepted
+
+    global first_iter
+    path = str(Path.home()) + "/Desktop" + "/Projects" + "/testProject"
     info = watchers.get(path)
     if not info:
         return {"error": "No watcher for this path"}
@@ -86,6 +93,7 @@ async def apply_changes(accepted: bool):
             curr_branch
         )
         merge_temp_branch(path, tmp_branch, curr_branch)
+        
 
         result = subprocess.run(
             ["node", "../src/util/store_runner.ts", json.dumps(output)],
@@ -93,13 +101,14 @@ async def apply_changes(accepted: bool):
             text=True
         )
 
-        print(result.stderr)
-        print(result.stdout)
+        first_iter = True
 
-        print(output)
         return {"message": "Changes accepted, merged and stored."}
     else:
         rollback_to_commit(path, curr_branch, tmp_branch, pre_commit_hash)
+
+        first_iter = True
+
         return {"message": "Changes rejected, rolled back to pre-fix state."}
 
 
