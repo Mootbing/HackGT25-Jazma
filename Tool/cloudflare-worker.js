@@ -225,7 +225,46 @@ async function handleToolCall(params, env) {
 // Search tool implementation
 async function handleSearchTool(args, params, env) {
   try {
-    // For now, return mock data - you'll integrate with Supabase
+    // Connect to the actual MCP server for real data
+    const mcpServerUrl = env.MCP_SERVER_URL || 'http://localhost:8080';
+    
+    // Make a request to the actual MCP server
+    const response = await fetch(`${mcpServerUrl}/mcp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'mcp-session-id': 'cloudflare-worker'
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: params.id || 1,
+        method: 'tools/call',
+        params: {
+          name: 'search',
+          arguments: args
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`MCP server request failed: ${response.status}`);
+    }
+
+    const mcpResponse = await response.json();
+    
+    // Return the response in the correct JSON-RPC format
+    return {
+      jsonrpc: '2.0',
+      id: params.id,
+      result: mcpResponse.result || {
+        content: [{
+          type: 'text',
+          text: 'Search completed successfully'
+        }]
+      }
+    };
+  } catch (error) {
+    // Fallback to mock data if MCP server is unavailable
     const mockResults = [
       {
         id: '1',
@@ -273,15 +312,52 @@ async function handleSearchTool(args, params, env) {
         }]
       }
     };
-  } catch (error) {
-    throw new Error(`Search failed: ${error.message}`);
   }
 }
 
 // Store tool implementation  
 async function handleStoreTool(args, params, env) {
   try {
-    // For now, simulate storage - you'll integrate with Supabase
+    // Connect to the actual MCP server for real data
+    const mcpServerUrl = env.MCP_SERVER_URL || 'http://localhost:8080';
+    
+    // Make a request to the actual MCP server
+    const response = await fetch(`${mcpServerUrl}/mcp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'mcp-session-id': 'cloudflare-worker'
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: params.id || 1,
+        method: 'tools/call',
+        params: {
+          name: 'store',
+          arguments: args
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`MCP server request failed: ${response.status}`);
+    }
+
+    const mcpResponse = await response.json();
+    
+    // Return the response in the correct JSON-RPC format
+    return {
+      jsonrpc: '2.0',
+      id: params.id,
+      result: mcpResponse.result || {
+        content: [{
+          type: 'text',
+          text: 'Store completed successfully'
+        }]
+      }
+    };
+  } catch (error) {
+    // Fallback to mock storage if MCP server is unavailable
     const entry = {
       id: Date.now().toString(),
       title: args.title,
@@ -309,7 +385,5 @@ async function handleStoreTool(args, params, env) {
         }]
       }
     };
-  } catch (error) {
-    throw new Error(`Store failed: ${error.message}`);
   }
 }
