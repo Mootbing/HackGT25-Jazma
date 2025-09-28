@@ -9,23 +9,25 @@ async function run() {
     });
     const client = await experimental_createMCPClient({ transport });
     try {
-        // Store a sample entry
-        const storeResult = await client.callTool({
-            name: 'store',
-            arguments: {
-                type: 'bug',
-                title: 'Test bug null pointer',
-                body: 'Repro: clicking save crashes. Stack: TypeError: Cannot read properties of undefined',
-                metadata: { project: 'demo', repo: 'example' },
-                tags: ['demo', 'test']
-            }
+        // Get tools first
+        const tools = await client.tools();
+        
+        // Store a sample entry using the working approach
+        const storeResult = await tools.store.execute({
+            type: 'bug',
+            title: 'Test bug null pointer',
+            body: 'Repro: clicking save crashes. Stack: TypeError: Cannot read properties of undefined',
+            metadata: { project: 'demo', repo: 'example' },
+            tags: ['demo', 'test']
         });
         // eslint-disable-next-line no-console
         console.log('store:', JSON.stringify(storeResult, null, 2));
-        // Search for it
-        const searchResult = await client.callTool({
-            name: 'search',
-            arguments: { query: 'Cannot read properties of undefined', filters: { project: 'demo' }, top_k: 5 }
+        
+        // Search for it using the working approach
+        const searchResult = await tools.search.execute({
+            query: 'Cannot read properties of undefined',
+            filters: { project: 'demo' },
+            top_k: 5
         });
         // eslint-disable-next-line no-console
         console.log('search:', JSON.stringify(searchResult, null, 2));
