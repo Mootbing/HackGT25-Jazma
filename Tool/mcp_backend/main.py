@@ -15,13 +15,13 @@ watchers = {}
 
 @app.post("/process")
 async def process_data(payload):
-    path = os.getcwd()
+    path = str(Path.home()) + "/Desktop" + "/Projects" + "/testProject2" + "/testProject"
 
     curr_branch = get_current_branch(path)
     pre_commit_hash = commit_pre_fix_state(path, curr_branch)
     tmp_branch = create_temp_branch(path, pre_commit_hash)
 
-    files_to_watch = payload.get("files", [])
+    files_to_watch = get_all_repo_files(path)
 
     watchers[path] = {
         "files": files_to_watch,
@@ -39,7 +39,8 @@ first_iter = True
 
 @app.get("/watch_status")
 async def watch_status():
-    path = os.getcwd()
+    global first_iter
+    path = str(Path.home()) + "/Desktop" + "/Projects" + "/testProject2" + "/testProject"
     info = watchers.get(path)
     if not info:
         return {"error": "No watcher for this path"}
@@ -61,12 +62,14 @@ async def watch_status():
 
 @app.post("/apply_changes")
 async def apply_changes(accepted: bool):
-    path = os.getcwd()
+    path = str(Path.home()) + "/Desktop" + "/Projects" + "/testProject2" + "/testProject"
     info = watchers.get(path)
     if not info:
         return {"error": "No watcher for this path"}
-
+    
     payload = info["payload"]
+    if isinstance(payload, str):
+        payload = json.loads(payload)
     curr_branch = info["curr_branch"]
     pre_commit_hash = info["pre_commit_hash"]
     tmp_branch = info["tmp_branch"]
@@ -78,23 +81,25 @@ async def apply_changes(accepted: bool):
         diff_text = git_diff(path, pre_commit_hash, new_commit_hash, files_to_watch)
         output = generate_store_payload(
             "bug",
-            payload.get("stack_trace", ""),
             diff_text,
-            payload.get("repo", ""),
-            curr_branch,
-            payload.get("language", "")
+            path.split("/")[-1],
+            curr_branch
         )
         merge_temp_branch(path, tmp_branch, curr_branch)
 
-        subprocess.run(
-            ["node", "store_runner.js", json.dumps(output)],
+        result = subprocess.run(
+            ["node", "../src/util/store_runner.ts", json.dumps(output)],
             capture_output=True,
             text=True
         )
 
+        print(result.stderr)
+        print(result.stdout)
+
+        print(output)
         return {"message": "Changes accepted, merged and stored."}
     else:
-        rollback_to_commit(path, curr_branch, pre_commit_hash)
+        rollback_to_commit(path, curr_branch, tmp_branch, pre_commit_hash)
         return {"message": "Changes rejected, rolled back to pre-fix state."}
 
 
