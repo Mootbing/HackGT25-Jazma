@@ -20,7 +20,6 @@ async function run(): Promise<void> {
     const result = await generateText({
       model: openai('gpt-4o'),
       tools,
-      maxSteps: 8,
       temperature: 0.2,
       system: [
         'You have access to MCP tools: search, store.',
@@ -35,9 +34,9 @@ async function run(): Promise<void> {
       onStepFinish: (step) => {
         // eslint-disable-next-line no-console
         console.log('\n[step]', JSON.stringify({
-          type: step.type,
-          toolCalls: step.toolCalls,
-          toolResults: step.toolResults
+          stepType: (step as any).stepType || 'unknown',
+          toolCalls: (step as any).toolCalls || [],
+          toolResults: (step as any).toolResults || []
         }, null, 2));
       }
     });
