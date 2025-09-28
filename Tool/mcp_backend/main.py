@@ -7,15 +7,11 @@ from repo_utils import *
 from pathlib import Path
 from llm_util import generate_store_payload
 import subprocess, json
-from pydantic import BaseModel
 import os
 
 
 app = FastAPI()
 watchers = {}
-
-class ApplyChangesPayload(BaseModel):
-    accepted: bool
 
 @app.post("/process")
 async def process_data(payload: dict = Body(...)):
@@ -65,9 +61,7 @@ async def watch_status():
     return {"changed": changed}
 
 @app.post("/apply_changes")
-async def apply_changes(payload: ApplyChangesPayload):
-    accepted = payload.accepted
-
+async def apply_changes(accepted: bool = Body(...)):
     global first_iter
     path = str(Path.home()) + "/Desktop" + "/Projects" + "/testProject"
     info = watchers.get(path)

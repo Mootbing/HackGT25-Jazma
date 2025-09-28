@@ -37,6 +37,7 @@ def main_loading_screen():
     return answer
 
 def awaiting_mcp():
+    '''
     console.print("[cyan]Creating temporary branch via MCP...[/cyan]")
 
     try:
@@ -49,6 +50,8 @@ def awaiting_mcp():
     except requests.RequestException as e:
         console.print(f"[red]Error connecting to backend: {e}[/red]")
         return
+    
+    '''
 
     with Progress(
         SpinnerColumn(),
