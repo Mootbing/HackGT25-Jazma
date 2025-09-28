@@ -34,7 +34,7 @@ export async function createMcpServer(): Promise<McpServer> {
     },
     async (args: any) => {
       try {
-        const input = args?.params ?? args;
+        const input = args;
 
         const result = await searchToolHandler(input);
 
@@ -97,9 +97,9 @@ export async function createMcpServer(): Promise<McpServer> {
     },
     async (args: any) => {
       try {
-        const input = args?.params ?? args;
+        const input = args;
 
-        const result = await storeToolHandler(args);
+        const result = await storeToolHandler(input);
         return { content: [{ type: 'json', json: result }] } as any;
       } catch (err: any) {
         const message = err?.message || 'store failed';
