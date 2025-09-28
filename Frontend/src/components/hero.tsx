@@ -30,9 +30,11 @@ export function Hero() {
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-          <Button size="lg" className="gap-2">
-            Get Started
-            <ArrowRight className="w-4 h-4" />
+          <Button asChild size="lg" className="gap-2">
+            <SmoothScrollLink href="#install" aria-label="Get Started">
+              Get Started
+              <ArrowRight className="w-4 h-4" />
+            </SmoothScrollLink>
           </Button>
           <Button asChild variant="outline" size="lg" className="gap-2 bg-transparent">
             <SmoothScrollLink href="#demo" aria-label="Watch Demo">

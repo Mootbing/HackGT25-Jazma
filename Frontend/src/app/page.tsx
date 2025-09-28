@@ -1,6 +1,7 @@
 import { Header } from "@/components/header"
 import { Hero } from "@/components/hero"
 import { Particles } from "@/components/ui/particles"
+import { InstallCursor } from "@/components/install-cursor"
 
 export default function Home() {
   return (
@@ -17,6 +18,7 @@ export default function Home() {
       <Header />
       <main>
         <Hero />
+        <InstallCursor />
       </main>
     </div>
   )
