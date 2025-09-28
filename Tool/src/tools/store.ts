@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { getSupabase } from '../lib/db.ts';
-import { computeContentHash, redactSecrets } from '../util/text.ts';
-import { embedChunks } from '../util/embeddings.ts';
-import { chunkText } from '../util/chunking.ts';
+import { getSupabase } from '../lib/db.js';
+import { computeContentHash, redactSecrets } from '../util/text.js';
+import { embedChunks } from '../util/embeddings.js';
+import { chunkText } from '../util/chunking.js';
 
 export const storeInputSchema = z.object({
   type: z.enum(['bug','solution','doc']),

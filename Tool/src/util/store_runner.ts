@@ -1,5 +1,5 @@
-import { createDbPool } from '../lib/db.ts';
-import { storeToolHandler } from '../tools/store.ts';
+import { createDbPool } from '../lib/db.js';
+import { storeToolHandler } from '../tools/store.js';
 
 const input = JSON.parse(process.argv[2]);
 

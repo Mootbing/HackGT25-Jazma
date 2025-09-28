@@ -214,16 +214,16 @@ async function handleToolCall(params, env) {
 
   switch (name) {
     case 'search':
-      return await handleSearchTool(args, env);
+      return await handleSearchTool(args, params, env);
     case 'store':
-      return await handleStoreTool(args, env);
+      return await handleStoreTool(args, params, env);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
 }
 
 // Search tool implementation
-async function handleSearchTool(args, env) {
+async function handleSearchTool(args, params, env) {
   try {
     // For now, return mock data - you'll integrate with Supabase
     const mockResults = [
@@ -279,7 +279,7 @@ async function handleSearchTool(args, env) {
 }
 
 // Store tool implementation  
-async function handleStoreTool(args, env) {
+async function handleStoreTool(args, params, env) {
   try {
     // For now, simulate storage - you'll integrate with Supabase
     const entry = {
